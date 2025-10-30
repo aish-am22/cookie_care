@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cookie Care</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    // Custom Tailwind theme configuration to match your design
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'brand-blue': {
+              DEFAULT: 'hsl(210, 90%, 50%)',
+              'light': 'hsl(210, 90%, 55%)',
+              'dark': 'hsl(210, 90%, 45%)',
+            },
+          }
+        },
+      }
+    }
+    </script>
+    <style>
+        @import url('https://rsms.me/inter/inter.css');
+        html { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        @supports (font-variation-settings: normal) {
+            html { font-family: 'Inter var', sans-serif; }
+        }
+
+        :root {
+            --bg-primary: hsl(0, 0%, 100%);
+            --bg-secondary: hsl(220, 13%, 96%);
+            --bg-tertiary: hsl(220, 13%, 91%);
+            --border-primary: hsl(220, 13%, 88%);
+            --text-primary: hsl(220, 10%, 40%);
+            --text-headings: hsl(220, 14%, 20%);
+            --text-accent: var(--brand-blue);
+            --pie-stroke-color: var(--bg-secondary);
+        }
+
+        html.dark {
+            --bg-primary: hsl(222, 18%, 13%);
+            --bg-secondary: hsl(222, 18%, 16%);
+            --bg-tertiary: hsl(222, 18%, 20%);
+            --border-primary: hsl(222, 18%, 25%);
+            --text-primary: hsl(220, 10%, 65%);
+            --text-headings: hsl(220, 15%, 90%);
+            --text-accent: hsl(210, 100%, 70%);
+            --pie-stroke-color: var(--bg-secondary);
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translate3d(0, 20px, 0); }
+            to { opacity: 1; transform: translate3d(0, 0, 0); }
+        }
+        .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background-color: var(--border-primary); border-radius: 4px; border: 2px solid var(--bg-primary); }
+        ::-webkit-scrollbar-thumb:hover { background-color: var(--text-primary); }
+        
+        /* Styles for AI-generated legal content */
+        .generated-content h2 { font-size: 1.25rem; font-weight: 700; color: var(--text-headings); margin-top: 1.5em; margin-bottom: 0.75em; border-bottom: 1px solid var(--border-primary); padding-bottom: 0.25em; }
+        .generated-content h2:first-child { margin-top: 0; }
+        .generated-content h3 { font-size: 1.1rem; font-weight: 600; color: var(--text-headings); margin-top: 1.25em; margin-bottom: 0.5em; }
+        .generated-content p { line-height: 1.6; margin-bottom: 1em; }
+        .generated-content strong { font-weight: 600; color: var(--text-headings); }
+        .generated-content ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
+        .generated-content li { margin-bottom: 0.5em; }
+    </style>
+    <script type="importmap">
+{
+  "imports": {
+    "recharts": "https://esm.sh/recharts@^3.1.2",
+    "mammoth": "https://esm.sh/mammoth@^1.10.0",
+    "html2canvas": "https://esm.sh/html2canvas@^1.4.1",
+    "jspdf": "https://esm.sh/jspdf@^2.5.1",
+    "diff": "https://esm.sh/diff@^5.2.0",
+    "react/": "https://esm.sh/react@^19.1.1/",
+    "react": "https://esm.sh/react@^19.1.1",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
+    "process": "https://aistudiocdn.com/process@^0.11.10",
+    "express": "https://aistudiocdn.com/express@^5.1.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.20.0",
+    "dotenv": "https://aistudiocdn.com/dotenv@^17.2.2",
+    "cors": "https://aistudiocdn.com/cors@^2.8.5",
+    "puppeteer": "https://aistudiocdn.com/puppeteer@^24.22.0",
+    "nodemailer": "https://aistudiocdn.com/nodemailer@^7.0.6",
+    "buffer": "https://aistudiocdn.com/buffer@^6.0.3"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-[var(--bg-primary)] text-[var(--text-primary)] antialiased transition-colors duration-300">
+    <div id="root"></div>
+    <script>
+      // Define a global, foolproof API URL for the application
+      window.API_BASE_URL = 'http://localhost:3001';
+    </script>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

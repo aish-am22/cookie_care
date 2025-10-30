@@ -1,0 +1,5 @@
+/*
+This file has been intentionally cleared.
+The Tailwind CSS CDN is now being used directly in index.html for simplicity.
+All custom CSS variables and styles have also been moved into a <style> tag in index.html to ensure they are applied correctly without a build step.
+*/
