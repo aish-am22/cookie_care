@@ -26,7 +26,10 @@ dotenv.config();
 const app = express();
 const port = 3001;
 
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 // FIX: Increase request body limit to 50mb to handle large base64 PDF payloads for email reports. This has been implemented.
 app.use(express.json({ limit: '50mb' }));
 
