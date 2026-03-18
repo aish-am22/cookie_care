@@ -1,15 +1,14 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import type { LegalAnalysisResult, LegalPerspective, GeneratedContract, ContractTemplate } from '../types';
+import type { LegalAnalysisResult, LegalPerspective, GeneratedContract } from '../types';
 import { ScanningProgress } from './ScanningProgress';
 import { AlertTriangleIcon, DocumentTextIcon, UploadCloudIcon, ScaleIcon, BookOpenIcon, RedactIcon } from './Icons';
 import { LegalAnalysisDisplay } from './LegalAnalysisDisplay';
 import { TemplateLibrary } from './TemplateLibrary';
 import { DocumentRedactorView } from './DocumentRedactorView';
 import * as mammoth from 'mammoth';
+import { useTemplates } from '../hooks/useTemplates';
 
-
-const API_BASE_URL = (window as any).API_BASE_URL;
 
 const legalReviewSteps = [
     { message: 'Preparing secure analysis environment...', progress: 15 },
@@ -140,24 +139,13 @@ export const LegalReviewerView: React.FC = () => {
     const [contractType, setContractType] = useState('Non-Disclosure Agreement (NDA)');
     const [contractDetails, setContractDetails] = useState<Record<string, any>>({});
     const [generatedContract, setGeneratedContract] = useState<GeneratedContract | null>(null);
-    const [templates, setTemplates] = useState<ContractTemplate[]>([]);
+    const { templates, fetchTemplates } = useTemplates();
     const [selectedTemplateId, setSelectedTemplateId] = useState<string>('none');
 
     // Shared State
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isParsing, setIsParsing] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-
-    const fetchTemplates = useCallback(async () => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/templates`);
-            if (!response.ok) throw new Error("Failed to fetch templates");
-            const data: ContractTemplate[] = await response.json();
-            setTemplates(data);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Could not load templates.');
-        }
-    }, []);
 
     useEffect(() => {
         if (viewMode === 'generate' || viewMode === 'templates') {

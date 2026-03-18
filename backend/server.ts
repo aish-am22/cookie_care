@@ -20,6 +20,12 @@ import {
     ThirdPartyDomainInfo
 } from './types.js';
 import { findCookieInDatabase } from './cookieDatabase.js';
+import logger from './src/infra/logger.js';
+import { requestId } from './src/middlewares/requestId.js';
+import { errorHandler } from './src/middlewares/errorHandler.js';
+import { rateLimitMiddleware } from './src/middlewares/rateLimit.js';
+import apiRouter from './src/routes/index.js';
+import { templateLibrary } from './src/services/templates/templateService.js';
 
 dotenv.config();
 
@@ -32,9 +38,11 @@ app.use(cors({
 }));
 // FIX: Increase request body limit to 50mb to handle large base64 PDF payloads for email reports. This has been implemented.
 app.use(express.json({ limit: '50mb' }));
+app.use(requestId);
+app.use(rateLimitMiddleware);
 
 if (!process.env.API_KEY) {
-  console.error("FATAL ERROR: API_KEY environment variable is not set.");
+  logger.fatal('FATAL ERROR: API_KEY environment variable is not set.');
   (process as any).exit(1);
 }
 
@@ -87,8 +95,7 @@ class AiCallQueue {
 const aiCallQueue = new AiCallQueue();
 
 
-// --- In-Memory Storage ---
-const templateLibrary = new Map<string, ContractTemplate>();
+// --- In-Memory Storage (delegated to templateService for the new routes) ---
 
 const getHumanReadableExpiry = (puppeteerCookie: PuppeteerCookie): string => {
     if (puppeteerCookie.session || puppeteerCookie.expires === -1) return "Session";
@@ -1709,35 +1716,8 @@ Your final output must be a single, valid JSON object adhering to this structure
     }
 });
 
-// --- Template Library Endpoints ---
-app.get('/api/templates', (req: express.Request, res: express.Response) => {
-    console.log('[SERVER] Fetching all contract templates.');
-    res.json(Array.from(templateLibrary.values()));
-});
-
-app.post('/api/templates', (req: express.Request, res: express.Response) => {
-    const { name, content } = req.body;
-    if (!name || !content) {
-        return res.status(400).json({ error: 'Template name and content are required.' });
-    }
-    const id = `${Date.now()}-${name.replace(/\s+/g, '-')}`;
-    const newTemplate: ContractTemplate = { id, name, content };
-    templateLibrary.set(id, newTemplate);
-    console.log(`[SERVER] Added new template: ${name} (ID: ${id})`);
-    res.status(201).json(newTemplate);
-});
-
-app.delete('/api/templates/:id', (req: express.Request, res: express.Response) => {
-    const { id } = req.params;
-    if (templateLibrary.has(id)) {
-        templateLibrary.delete(id);
-        console.log(`[SERVER] Deleted template with ID: ${id}`);
-        res.status(204).send();
-    } else {
-        res.status(404).json({ error: `Template with id ${id} not found.` });
-    }
-});
-
+// --- Template Library Endpoints (served by new router under /api) ---
+app.use('/api', apiRouter);
 
 // Contract Generation
 interface GenerateContractBody {
@@ -1890,6 +1870,8 @@ app.post('/api/chat-with-document', async (req: express.Request, res: express.Re
 });
 
 
+app.use(errorHandler);
+
 app.listen(port, () => {
-  console.log(`[SERVER] Backend server running at http://localhost:${port}`);
+  logger.info(`Backend server running at http://localhost:${port}`);
 });
