@@ -3,8 +3,7 @@ import React, { useState, useRef } from 'react';
 import type { ContractTemplate } from '../types';
 import { AlertTriangleIcon, UploadCloudIcon, TrashIcon, BookOpenIcon } from './Icons';
 import * as mammoth from 'mammoth';
-
-const API_BASE_URL = (window as any).API_BASE_URL;
+import { templatesApi } from '../api/templatesApi';
 
 interface TemplateLibraryProps {
     templates: ContractTemplate[];
@@ -27,7 +26,6 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ templates, onT
 
         try {
             let fileContent = '';
-            const reader = new FileReader();
             
             if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
                 const arrayBuffer = await file.arrayBuffer();
@@ -37,16 +35,11 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ templates, onT
                  fileContent = await file.text();
             }
 
-            const response = await fetch(`${API_BASE_URL}/api/templates`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: file.name, content: fileContent }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to upload template.');
+            if (!fileContent.trim()) {
+                throw new Error('The file appears to be empty. Please upload a file with content.');
             }
+
+            await templatesApi.create(file.name, fileContent);
             onTemplatesChange(); // Refresh the list
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An unknown error occurred during upload.');
@@ -61,10 +54,7 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ templates, onT
         if (!window.confirm("Are you sure you want to delete this template?")) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/templates/${templateId}`, {
-                method: 'DELETE',
-            });
-            if (!response.ok) throw new Error('Failed to delete template.');
+            await templatesApi.remove(templateId);
             onTemplatesChange();
         } catch (err) {
              setError(err instanceof Error ? err.message : 'An unknown error occurred during deletion.');
