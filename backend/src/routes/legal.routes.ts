@@ -1,13 +1,8 @@
 import { Router } from 'express';
+import { reviewLegal } from '../controllers/legal.controller.js';
 
-/**
- * Legal routes placeholder.
- * TODO: Mount legal controller handlers here when migrating legal review endpoints.
- */
 const router = Router();
 
-router.get('/health', (_req, res) => {
-  res.json({ status: 'ok', feature: 'legal' });
-});
+router.post('/', reviewLegal);
 
 export default router;

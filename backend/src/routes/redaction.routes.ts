@@ -1,14 +1,9 @@
 import { Router } from 'express';
+import { findPii, redactDocument } from '../controllers/redaction.controller.js';
 
-/**
- * Redaction routes placeholder.
- * TODO: Mount redaction controller handlers here when migrating
- * the /api/find-pii and /api/redact-document endpoints.
- */
 const router = Router();
 
-router.get('/health', (_req, res) => {
-  res.json({ status: 'ok', feature: 'redaction' });
-});
+router.post('/find-pii', findPii);
+router.post('/redact-document', redactDocument);
 
 export default router;
