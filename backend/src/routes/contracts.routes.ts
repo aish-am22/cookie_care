@@ -1,13 +1,8 @@
 import { Router } from 'express';
+import { generateContract } from '../controllers/contracts.controller.js';
 
-/**
- * Contracts routes placeholder.
- * TODO: Mount contracts controller handlers here when migrating contract generation endpoints.
- */
 const router = Router();
 
-router.get('/health', (_req, res) => {
-  res.json({ status: 'ok', feature: 'contracts' });
-});
+router.post('/', generateContract);
 
 export default router;

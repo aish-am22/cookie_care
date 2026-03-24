@@ -1,13 +1,8 @@
 import { Router } from 'express';
+import { chat } from '../controllers/chat.controller.js';
 
-/**
- * Chat routes placeholder.
- * TODO: Mount chat controller handlers here when migrating the chat/DPA assistant endpoint.
- */
 const router = Router();
 
-router.get('/health', (_req, res) => {
-  res.json({ status: 'ok', feature: 'chat' });
-});
+router.post('/', chat);
 
 export default router;

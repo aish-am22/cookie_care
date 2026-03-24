@@ -1,13 +1,8 @@
 import { Router } from 'express';
+import { startScan } from '../controllers/scan.controller.js';
 
-/**
- * Scan routes placeholder.
- * TODO: Mount scan controller handlers here when migrating /api/scan endpoint.
- */
 const router = Router();
 
-router.get('/health', (_req, res) => {
-  res.json({ status: 'ok', feature: 'scan' });
-});
+router.get('/', startScan);
 
 export default router;
