@@ -1,5 +1,9 @@
 import { db } from "../../infra/db.js";
 
+function formatScanType(type: string): string {
+  return `${type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()} Scan`;
+}
+
 export async function getDashboardSummary(userId: string) {
   const [total, completed, failed, highRisk, activeSessions] = await Promise.all([
     db.scanRecord.count({ where: { userId } }),
@@ -49,7 +53,7 @@ export async function getActivityFeed(userId: string, limit = 20) {
   const scanEvents = scans.map((s) => ({
     id: `scan_${s.id}`,
     type: "scan" as const,
-    title: `${s.type.charAt(0).toUpperCase() + s.type.slice(1).toLowerCase()} Scan`,
+    title: formatScanType(s.type),
     description: s.target,
     status: s.status,
     riskScore: s.riskScore,

@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const data = await authApi.login({ email, password });
     setAccessToken(data.accessToken);
-    setUser({ ...data.user, isEmailVerified: (data.user as AuthUser & { isEmailVerified?: boolean }).isEmailVerified ?? false });
+    setUser({ ...data.user, isEmailVerified: data.user.isEmailVerified ?? false });
     setView('app');
   }, []);
 
@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // After register, log the user in automatically
     const data = await authApi.login({ email, password });
     setAccessToken(data.accessToken);
-    setUser({ ...data.user, isEmailVerified: (data.user as AuthUser & { isEmailVerified?: boolean }).isEmailVerified ?? false });
+    setUser({ ...data.user, isEmailVerified: data.user.isEmailVerified ?? false });
     setView('app');
   }, []);
 

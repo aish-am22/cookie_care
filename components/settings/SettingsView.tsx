@@ -274,6 +274,7 @@ const SessionsSection: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [revoking, setRevoking] = useState<string | null>(null);
   const [revokingAll, setRevokingAll] = useState(false);
+  const [confirmRevokeAll, setConfirmRevokeAll] = useState(false);
   const [alert, setAlert] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
 
   const loadSessions = async () => {
@@ -305,7 +306,7 @@ const SessionsSection: React.FC = () => {
   };
 
   const handleRevokeAll = async () => {
-    if (!confirm('Revoke all other sessions? You will stay logged in on this device.')) return;
+    setConfirmRevokeAll(false);
     setRevokingAll(true);
     setAlert(null);
     try {
@@ -336,13 +337,32 @@ const SessionsSection: React.FC = () => {
           <p className="text-sm text-[var(--text-primary)] mt-1">Devices currently signed in to your account.</p>
         </div>
         {sessions.length > 1 && (
-          <button
-            onClick={handleRevokeAll}
-            disabled={revokingAll}
-            className="px-3 py-1.5 text-xs font-semibold text-red-600 dark:text-red-400 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {revokingAll ? 'Revoking…' : 'Revoke all'}
-          </button>
+          !confirmRevokeAll ? (
+            <button
+              onClick={() => setConfirmRevokeAll(true)}
+              disabled={revokingAll}
+              className="px-3 py-1.5 text-xs font-semibold text-red-600 dark:text-red-400 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              Revoke all
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[var(--text-primary)]">Are you sure?</span>
+              <button
+                onClick={handleRevokeAll}
+                disabled={revokingAll}
+                className="px-2 py-1 text-xs font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-60"
+              >
+                {revokingAll ? 'Revoking…' : 'Yes, revoke all'}
+              </button>
+              <button
+                onClick={() => setConfirmRevokeAll(false)}
+                className="px-2 py-1 text-xs font-medium text-[var(--text-primary)] border border-[var(--border-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          )
         )}
       </div>
 

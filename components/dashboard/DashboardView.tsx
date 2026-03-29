@@ -100,7 +100,8 @@ const RiskChart: React.FC<{ data: RiskTrendPoint[]; loading: boolean }> = ({ dat
 
   return (
     <div className="w-full overflow-x-auto">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-40" preserveAspectRatio="none">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-40" preserveAspectRatio="none" role="img" aria-label="Risk trend chart showing average risk score over time">
+        <title>Risk trend chart — average risk score over the last 30 days</title>
         {yTicks.map(t => {
           const y = padding.top + chartH - (t / maxRisk) * chartH;
           return (
