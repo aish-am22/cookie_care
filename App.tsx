@@ -1,9 +1,12 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginView } from './components/auth/LoginView';
 import { RegisterView } from './components/auth/RegisterView';
+import { ForgotPasswordView } from './components/auth/ForgotPasswordView';
+import { ResetPasswordView } from './components/auth/ResetPasswordView';
+import { DashboardView } from './components/dashboard/DashboardView';
+import { SettingsView } from './components/settings/SettingsView';
 import { CookieCareLogo, SunIcon, MoonIcon, CheckCircleIcon, ScaleIcon, ShieldCheckIcon } from './components/Icons';
 import { CookieScannerView } from './components/CookieScannerView';
 import { LegalReviewerView } from './components/LegalReviewerView';
@@ -19,7 +22,7 @@ const ThemeToggle: React.FC<{ theme: string, toggleTheme: () => void }> = ({ the
     </button>
 );
 
-type View = 'scanner' | 'legal' | 'vulnerability';
+type View = 'dashboard' | 'scanner' | 'legal' | 'vulnerability' | 'settings';
 
 const UserMenu: React.FC = () => {
   const { user, logout } = useAuth();
@@ -56,9 +59,15 @@ const UserMenu: React.FC = () => {
   );
 };
 
+const DashboardIcon: React.FC = () => (
+  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+  </svg>
+);
+
 const MainApp: React.FC = () => {
   const [theme, setTheme] = useState('dark');
-  const [activeView, setActiveView] = useState<View>('scanner');
+  const [activeView, setActiveView] = useState<View>('dashboard');
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -73,29 +82,37 @@ const MainApp: React.FC = () => {
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
 
-  const NavTab: React.FC<{view: View, label: string, icon: React.ReactNode}> = ({ view, label, icon }) => {
+  const NavTab: React.FC<{ view: View; label: string; icon: React.ReactNode }> = ({ view, label, icon }) => {
     const isActive = activeView === view;
     return (
-       <button 
-          onClick={() => setActiveView(view)}
-          className={`flex items-center space-x-2 px-4 py-2.5 text-sm font-semibold rounded-md transition-colors duration-200 ${
-            isActive 
-              ? 'bg-brand-blue text-white shadow-sm' 
-              : 'text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-          }`}
-          aria-current={isActive ? 'page' : undefined}
-       >
+      <button
+        onClick={() => setActiveView(view)}
+        className={`flex items-center space-x-2 px-4 py-2.5 text-sm font-semibold rounded-md transition-colors duration-200 ${
+          isActive
+            ? 'bg-brand-blue text-white shadow-sm'
+            : 'text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+        }`}
+        aria-current={isActive ? 'page' : undefined}
+      >
         {icon}
         <span>{label}</span>
       </button>
-    )
-  }
-  
+    );
+  };
+
   const descriptions: Record<View, string> = {
-    scanner: "Real-time reports on cookies, trackers, and potential compliance issues for GDPR & CCPA.",
-    legal: "AI-powered contract analysis, drafting, and negotiation assistance.",
-    vulnerability: "AI-driven security scans to find website vulnerabilities and get remediation plans."
-  }
+    dashboard: 'Your compliance overview — scans, risk trends, and recent activity at a glance.',
+    scanner: 'Real-time reports on cookies, trackers, and potential compliance issues for GDPR & CCPA.',
+    legal: 'AI-powered contract analysis, drafting, and negotiation assistance.',
+    vulnerability: 'AI-driven security scans to find website vulnerabilities and get remediation plans.',
+    settings: 'Manage your account, password, sessions, and notification preferences.',
+  };
+
+  const handleNavigate = (v: string) => {
+    if (['dashboard', 'scanner', 'legal', 'vulnerability', 'settings'].includes(v)) {
+      setActiveView(v as View);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] font-sans text-[var(--text-primary)] flex flex-col">
@@ -115,28 +132,38 @@ const MainApp: React.FC = () => {
       </header>
 
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 flex-grow">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-[var(--text-headings)] leading-tight">
-            Holistic Compliance Analysis Engine
-          </h2>
-          <p className="mt-4 text-lg text-[var(--text-primary)] max-w-2xl mx-auto">
-            {descriptions[activeView]}
-          </p>
-        </div>
-
-        <div className="max-w-4xl mx-auto mt-10">
-          <div className="flex justify-center items-center p-1.5 bg-[var(--bg-tertiary)] rounded-lg space-x-2 flex-wrap">
-            <NavTab view="scanner" label="Cookie Scanner" icon={<CheckCircleIcon className="h-5 w-5"/>} />
-            <NavTab view="legal" label="Legal Review" icon={<ScaleIcon className="h-5 w-5" />} />
-            <NavTab view="vulnerability" label="Vulnerability Scanner" icon={<ShieldCheckIcon className="h-5 w-5" />} />
+        {activeView === 'settings' ? (
+          <div className="max-w-4xl mx-auto">
+            <SettingsView onBack={() => setActiveView('dashboard')} />
           </div>
-        </div>
+        ) : (
+          <>
+            <div className="max-w-4xl mx-auto text-center">
+              <h2 className="text-3xl sm:text-5xl font-extrabold text-[var(--text-headings)] leading-tight">
+                Holistic Compliance Analysis Engine
+              </h2>
+              <p className="mt-4 text-lg text-[var(--text-primary)] max-w-2xl mx-auto">
+                {descriptions[activeView]}
+              </p>
+            </div>
 
-        <div className="mt-8">
-            {activeView === 'scanner' && <CookieScannerView />}
-            {activeView === 'legal' && <LegalReviewerView />}
-            {activeView === 'vulnerability' && <VulnerabilityScannerView />}
-        </div>
+            <div className="max-w-4xl mx-auto mt-10">
+              <div className="flex justify-center items-center p-1.5 bg-[var(--bg-tertiary)] rounded-lg space-x-2 flex-wrap gap-y-1">
+                <NavTab view="dashboard" label="Dashboard" icon={<DashboardIcon />} />
+                <NavTab view="scanner" label="Cookie Scanner" icon={<CheckCircleIcon className="h-5 w-5" />} />
+                <NavTab view="legal" label="Legal Review" icon={<ScaleIcon className="h-5 w-5" />} />
+                <NavTab view="vulnerability" label="Vulnerability Scanner" icon={<ShieldCheckIcon className="h-5 w-5" />} />
+              </div>
+            </div>
+
+            <div className="mt-8 max-w-6xl mx-auto">
+              {activeView === 'dashboard' && <DashboardView onNavigate={handleNavigate} />}
+              {activeView === 'scanner' && <CookieScannerView />}
+              {activeView === 'legal' && <LegalReviewerView />}
+              {activeView === 'vulnerability' && <VulnerabilityScannerView />}
+            </div>
+          </>
+        )}
       </main>
 
       <footer className="text-center py-6 text-sm text-[var(--text-primary)]/80">
@@ -147,7 +174,7 @@ const MainApp: React.FC = () => {
 };
 
 const AppShell: React.FC = () => {
-  const { view } = useAuth();
+  const { view, showLogin, resetPasswordToken } = useAuth();
 
   if (view === 'loading') {
     return (
@@ -165,6 +192,11 @@ const AppShell: React.FC = () => {
 
   if (view === 'login') return <LoginView />;
   if (view === 'register') return <RegisterView />;
+  if (view === 'forgot-password') return <ForgotPasswordView onBack={showLogin} />;
+  if (view === 'reset-password' && resetPasswordToken) {
+    return <ResetPasswordView token={resetPasswordToken} onSuccess={showLogin} />;
+  }
+  if (view === 'verify-email') return <LoginView />;
   return <MainApp />;
 };
 

@@ -8,6 +8,11 @@ const AUTH_ERROR_MAP: Record<string, number> = {
   "Invalid refresh token.": 401,
   "Refresh session expired or invalid.": 401,
   "User not found.": 404,
+  "Current password is incorrect.": 400,
+  "Invalid or expired reset token.": 400,
+  "Email already verified.": 400,
+  "Invalid or expired verification token.": 400,
+  "Session not found.": 404,
 };
 
 export const errorHandler = (

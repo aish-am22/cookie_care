@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { CookieCareLogo } from '../Icons';
 
 export const LoginView: React.FC = () => {
-  const { login, showRegister } = useAuth();
+  const { login, showRegister, showForgotPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -104,6 +104,15 @@ export const LoginView: React.FC = () => {
               className="font-semibold text-brand-blue hover:underline"
             >
               Create one
+            </button>
+          </p>
+          <p className="text-center text-sm text-[var(--text-primary)]">
+            <button
+              type="button"
+              onClick={showForgotPassword}
+              className="font-semibold text-brand-blue hover:underline"
+            >
+              Forgot your password?
             </button>
           </p>
         </form>

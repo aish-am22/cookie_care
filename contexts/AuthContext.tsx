@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { authApi, type AuthUser } from '../api/authApi';
 import { setAccessToken, setUnauthorizedHandler } from '../api/httpClient';
 
-export type AuthView = 'loading' | 'login' | 'register' | 'app';
+export type AuthView = 'loading' | 'login' | 'register' | 'app' | 'forgot-password' | 'reset-password' | 'verify-email';
 
 interface AuthState {
   user: AuthUser | null;
@@ -17,6 +17,9 @@ interface AuthContextValue extends AuthState {
   logout: () => Promise<void>;
   showRegister: () => void;
   showLogin: () => void;
+  showForgotPassword: () => void;
+  resetPasswordToken: string | null;
+  verifyEmailToken: string | null;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -25,6 +28,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState<AuthView>('loading');
+  const [resetPasswordToken, setResetPasswordToken] = useState<string | null>(null);
+  const [verifyEmailToken, setVerifyEmailToken] = useState<string | null>(null);
   const bootstrapped = useRef(false);
 
   const signOut = useCallback(() => {
@@ -41,11 +46,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUnauthorizedHandler(signOut);
 
     async function bootstrap() {
+      // Check URL hash for token-based flows
+      const hash = window.location.hash;
+      if (hash.startsWith('#reset-password')) {
+        const params = new URLSearchParams(hash.replace('#reset-password?', ''));
+        const token = params.get('token');
+        if (token) {
+          setResetPasswordToken(token);
+          setView('reset-password');
+          setIsLoading(false);
+          return;
+        }
+      }
+      if (hash.startsWith('#verify-email')) {
+        const params = new URLSearchParams(hash.replace('#verify-email?', ''));
+        const token = params.get('token');
+        if (token) {
+          setVerifyEmailToken(token);
+          setView('verify-email');
+          setIsLoading(false);
+          return;
+        }
+      }
+
       try {
         const refreshData = await authApi.refresh();
         setAccessToken(refreshData.accessToken);
         const meData = await authApi.me(refreshData.accessToken);
-        setUser({ id: meData.id, email: meData.email, fullName: meData.fullName, role: meData.role });
+        setUser({ id: meData.id, email: meData.email, fullName: meData.fullName, role: meData.role, isEmailVerified: meData.isEmailVerified });
         setView('app');
       } catch {
         // No valid session — show login
@@ -61,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const data = await authApi.login({ email, password });
     setAccessToken(data.accessToken);
-    setUser(data.user);
+    setUser({ ...data.user, isEmailVerified: data.user.isEmailVerified ?? false });
     setView('app');
   }, []);
 
@@ -70,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // After register, log the user in automatically
     const data = await authApi.login({ email, password });
     setAccessToken(data.accessToken);
-    setUser(data.user);
+    setUser({ ...data.user, isEmailVerified: data.user.isEmailVerified ?? false });
     setView('app');
   }, []);
 
@@ -84,6 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const showRegister = useCallback(() => setView('register'), []);
   const showLogin = useCallback(() => setView('login'), []);
+  const showForgotPassword = useCallback(() => setView('forgot-password'), []);
 
   const value: AuthContextValue = {
     user,
@@ -95,6 +124,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     showRegister,
     showLogin,
+    showForgotPassword,
+    resetPasswordToken,
+    verifyEmailToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

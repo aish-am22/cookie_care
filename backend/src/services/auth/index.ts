@@ -98,7 +98,7 @@ export async function login(input: {
   return {
     accessToken,
     refreshToken,
-    user: { id: user.id, email: user.email, fullName: user.fullName, role: user.role },
+    user: { id: user.id, email: user.email, fullName: user.fullName, role: user.role, isEmailVerified: user.isEmailVerified },
   };
 }
 
