@@ -1,6 +1,9 @@
 
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LoginView } from './components/auth/LoginView';
+import { RegisterView } from './components/auth/RegisterView';
 import { CookieCareLogo, SunIcon, MoonIcon, CheckCircleIcon, ScaleIcon, ShieldCheckIcon } from './components/Icons';
 import { CookieScannerView } from './components/CookieScannerView';
 import { LegalReviewerView } from './components/LegalReviewerView';
@@ -18,7 +21,42 @@ const ThemeToggle: React.FC<{ theme: string, toggleTheme: () => void }> = ({ the
 
 type View = 'scanner' | 'legal' | 'vulnerability';
 
-const App: React.FC = () => {
+const UserMenu: React.FC = () => {
+  const { user, logout } = useAuth();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+        aria-label="User menu"
+      >
+        <span className="w-7 h-7 rounded-full bg-brand-blue flex items-center justify-center text-white text-xs font-bold select-none">
+          {(user?.fullName ?? user?.email ?? 'U')[0].toUpperCase()}
+        </span>
+        <span className="hidden sm:inline max-w-[140px] truncate">{user?.fullName ?? user?.email}</span>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-1 w-52 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl shadow-lg py-1 z-50">
+          <div className="px-4 py-2 border-b border-[var(--border-primary)]">
+            <p className="text-xs font-semibold text-[var(--text-headings)] truncate">{user?.fullName ?? 'Account'}</p>
+            <p className="text-xs text-[var(--text-primary)] truncate">{user?.email}</p>
+          </div>
+          <button
+            onClick={async () => { setOpen(false); await logout(); }}
+            className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-[var(--bg-tertiary)] transition-colors"
+          >
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const MainApp: React.FC = () => {
   const [theme, setTheme] = useState('dark');
   const [activeView, setActiveView] = useState<View>('scanner');
 
@@ -69,7 +107,10 @@ const App: React.FC = () => {
               Cookie Care
             </h1>
           </div>
-          <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+          <div className="flex items-center gap-2">
+            <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+            <UserMenu />
+          </div>
         </nav>
       </header>
 
@@ -104,5 +145,33 @@ const App: React.FC = () => {
     </div>
   );
 };
+
+const AppShell: React.FC = () => {
+  const { view } = useAuth();
+
+  if (view === 'loading') {
+    return (
+      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div
+            className="w-10 h-10 rounded-full animate-spin"
+            style={{ border: '4px solid var(--border-primary)', borderTopColor: 'var(--brand-blue, hsl(210,90%,50%))' }}
+          />
+          <p className="text-sm text-[var(--text-primary)]">Loading…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'login') return <LoginView />;
+  if (view === 'register') return <RegisterView />;
+  return <MainApp />;
+};
+
+const App: React.FC = () => (
+  <AuthProvider>
+    <AppShell />
+  </AuthProvider>
+);
 
 export default App;

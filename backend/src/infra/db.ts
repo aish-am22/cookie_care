@@ -12,12 +12,7 @@ if (typeof window === 'undefined') {
 // 1. Connection String fetching from .env
 const connectionString = process.env.DATABASE_URL?.trim();
 
-console.log('[DB Init] NODE_ENV:', process.env.NODE_ENV);
-console.log('[DB Init] DATABASE_URL present:', !!connectionString);
-
 if (!connectionString) {
-  console.error("❌ CRITICAL: DATABASE_URL is missing in .env file!");
-  console.error('[DB Init] Available process.env keys:', Object.keys(process.env).filter(k => k.startsWith('DATABASE') || k.startsWith('JWT') || k.startsWith('NODE')));
   throw new Error("DATABASE_URL is required to start the server.");
 }
 
@@ -27,8 +22,6 @@ try {
 } catch {
   throw new Error("DATABASE_URL is not a valid URL.");
 }
-
-console.log('[DB Init] DB host:', parsedUrl.hostname);
 
 // 2. Create adapter with explicit PoolConfig (Prisma 7 constructor expects config, not Pool instance)
 const adapter = new PrismaNeon({
@@ -45,16 +38,16 @@ declare global {
   var __prisma__: PrismaClient | undefined;
 }
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 // 4. Export the Database Client
 export const db =
   global.__prisma__ ??
   new PrismaClient({
     adapter,
-    log: ["query", "error", "warn"],
+    log: isProduction ? ["error", "warn"] : ["error", "warn"],
   });
 
-if (process.env.NODE_ENV !== "production") {
+if (!isProduction) {
   global.__prisma__ = db;
 }
-
-console.log("🚀 Prisma Client Initialized with Neon Adapter");
