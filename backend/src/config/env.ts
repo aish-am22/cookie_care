@@ -1,7 +1,17 @@
+import dotenv from 'dotenv';
 import { z } from 'zod';
 
+dotenv.config();
+
 const envSchema = z.object({
-  API_KEY: z.string().min(1, 'API_KEY is required'),
+  DATABASE_URL: z.string().min(1),
+  API_KEY: z.string().min(1).optional(),
+  GEMINI_API_KEY: z.string().min(1).optional(),
+  JWT_ACCESS_SECRET: z.string().min(1),
+  JWT_REFRESH_SECRET: z.string().min(1),
+  ACCESS_TOKEN_EXPIRES_IN: z.string().default('15m'),
+  REFRESH_TOKEN_EXPIRES_IN: z.string().default('30d'),
+  BCRYPT_ROUNDS: z.coerce.number().int().positive().default(12),
   PORT: z.coerce.number().int().positive().default(3001),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
@@ -11,6 +21,9 @@ const envSchema = z.object({
   SMTP_PORT: z.coerce.number().int().positive().optional(),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
+}).refine((data) => Boolean(data.API_KEY || data.GEMINI_API_KEY), {
+  message: 'API_KEY or GEMINI_API_KEY is required',
+  path: ['API_KEY'],
 });
 
 export type Env = z.infer<typeof envSchema>;

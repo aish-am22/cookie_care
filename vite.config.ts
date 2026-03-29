@@ -9,9 +9,10 @@ export default defineConfig(({ mode }) => {
         port: 3000,
         host: '0.0.0.0',
         proxy: {
-          '/api': {
+          '/backend-proxy': {
             target: 'http://127.0.0.1:3001',
             changeOrigin: true,
+            rewrite: (path) => path.replace(/^\/backend-proxy/, ''),
           },
         },
       },

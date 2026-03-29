@@ -1,4 +1,5 @@
 const BASE_URL: string = (window as any).API_BASE_URL ?? '';
+const LOCAL_PROXY_PREFIX = '/backend-proxy';
 
 class HttpError extends Error {
   constructor(public status: number, message: string) {
@@ -12,7 +13,10 @@ async function request<T>(
   path: string,
   body?: unknown
 ): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`, {
+  const resolvedPath =
+    BASE_URL || !path.startsWith('/api') ? path : `${LOCAL_PROXY_PREFIX}${path}`;
+
+  const response = await fetch(`${BASE_URL}${resolvedPath}`, {
     method,
     headers: { 'Content-Type': 'application/json' },
     body: body !== undefined ? JSON.stringify(body) : undefined,

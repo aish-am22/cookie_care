@@ -8,7 +8,7 @@ import { AlertTriangleIcon } from './Icons';
 import type { ScanResultData } from '../types';
 
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+const API_BASE_URL = (((window as any).API_BASE_URL as string | undefined) ?? import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
 
 type ScanDepth = 'lite' | 'medium' | 'deep' | 'enterprise';
 
@@ -31,7 +31,7 @@ export const CookieScannerView: React.FC = () => {
     setScanResult(null);
     setScanLogs([]);
 
-    const scanEndpoint = API_BASE_URL ? `${API_BASE_URL}/api/scan` : '/api/scan';
+    const scanEndpoint = API_BASE_URL ? `${API_BASE_URL}/api/scan` : '/backend-proxy/api/scan';
     const scanUrl = new URL(scanEndpoint, window.location.origin);
     scanUrl.searchParams.append('url', url);
     scanUrl.searchParams.append('depth', scanDepth);

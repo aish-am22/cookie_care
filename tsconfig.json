@@ -1,29 +1,24 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "experimentalDecorators": true,
-    "useDefineForClassFields": false,
-    "module": "ESNext",
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "module": "NodeNext",              // Backend ke liye NodeNext best hai
+    "moduleResolution": "NodeNext",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "declaration": true,
+    "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": [
-      "node"
-    ],
-    "moduleResolution": "bundler",
-    "isolatedModules": true,
-    "moduleDetection": "force",
-    "allowJs": true,
-    "jsx": "react-jsx",
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["src/*"]
     },
-    "allowImportingTsExtensions": true,
-    "noEmit": true
-  }
+    "types": ["node"]
+  },
+  "include": [
+    "src/**/*",                        // Saara source code
+    "src/types/**/*.d.ts"              // Aapki custom express.d.ts file
+  ],
+  "exclude": ["node_modules", "dist"]
 }

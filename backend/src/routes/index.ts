@@ -7,9 +7,10 @@ import legalRouter from './legal.routes.js';
 import contractsRouter from './contracts.routes.js';
 import chatRouter from './chat.routes.js';
 import { findPii, redactDocument } from '../controllers/redaction.controller.js';
+import authRoutes from "./auth.routes.js";
 
 const router = Router();
-
+router.use('/auth', authRoutes);
 // Templates: GET/POST /api/templates, DELETE /api/templates/:id
 router.use('/templates', templatesRouter);
 

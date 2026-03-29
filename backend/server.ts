@@ -1,13 +1,15 @@
+import dotenv from 'dotenv';
+
+// Load env vars BEFORE any other imports
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import logger from './src/infra/logger.js';
 import { requestId } from './src/middlewares/requestId.js';
 import { errorHandler } from './src/middlewares/errorHandler.js';
 import { rateLimitMiddleware } from './src/middlewares/rateLimit.js';
 import apiRouter from './src/routes/index.js';
-
-dotenv.config();
 
 // Validate required env vars before doing anything else
 if (!process.env.API_KEY) {

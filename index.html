@@ -98,8 +98,8 @@
 <body class="bg-[var(--bg-primary)] text-[var(--text-primary)] antialiased transition-colors duration-300">
     <div id="root"></div>
     <script>
-      // Define a global, foolproof API URL for the application
-      window.API_BASE_URL = 'https://cautious-xylophone-q7qjx7647x9436w97-3001.app.github.dev/';
+      // Route API calls through Vite's same-origin proxy in local/dev environments.
+      window.API_BASE_URL = '/backend-proxy';
     </script>
     <script type="module" src="/index.tsx"></script>
   </body>
