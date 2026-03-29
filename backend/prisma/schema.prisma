@@ -34,6 +34,7 @@ model User {
   passwordResetTokens     PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
   auditLogs               AuditLog[]
+  scanRecords             ScanRecord[]
 
   @@index([role])
   @@index([createdAt])
@@ -109,5 +110,35 @@ model AuditLog {
 
   @@index([userId])
   @@index([action])
+  @@index([createdAt])
+}
+
+enum ScanType {
+  COOKIE
+  LEGAL
+  VULNERABILITY
+}
+
+enum ScanStatus {
+  COMPLETED
+  FAILED
+}
+
+model ScanRecord {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      ScanType
+  status    ScanStatus @default(COMPLETED)
+  target    String
+  riskScore Int?
+  findings  Int?
+  metadata  Json?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
   @@index([createdAt])
 }

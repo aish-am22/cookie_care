@@ -8,6 +8,8 @@ import contractsRouter from './contracts.routes.js';
 import chatRouter from './chat.routes.js';
 import { findPii, redactDocument } from '../controllers/redaction.controller.js';
 import authRoutes from "./auth.routes.js";
+import userRouter from './user.routes.js';
+import dashboardRouter from './dashboard.routes.js';
 
 const router = Router();
 router.use('/auth', authRoutes);
@@ -36,5 +38,11 @@ router.use('/generate-contract', contractsRouter);
 
 // Chat with document: POST /api/chat-with-document
 router.use('/chat-with-document', chatRouter);
+
+// User management: profile, password, sessions, scans
+router.use('/users', userRouter);
+
+// Dashboard: summary, activity, risk trends, recent scans
+router.use('/dashboard', dashboardRouter);
 
 export default router;
