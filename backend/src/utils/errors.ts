@@ -4,7 +4,8 @@ export class AppError extends Error {
   constructor(
     public readonly statusCode: number,
     message: string,
-    public readonly code?: string
+    public readonly code?: string,
+    public readonly details?: unknown
   ) {
     super(message);
     this.name = 'AppError';
@@ -19,8 +20,8 @@ export class NotFoundError extends AppError {
 }
 
 export class ValidationError extends AppError {
-  constructor(message = 'Validation failed') {
-    super(400, message, 'VALIDATION_ERROR');
+  constructor(message = 'Validation failed', details?: unknown) {
+    super(400, message, 'VALIDATION_ERROR', details);
     this.name = 'ValidationError';
   }
 }

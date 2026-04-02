@@ -72,3 +72,118 @@ Return ONLY the valid JSON object.`;
 
   return JSON.parse(resultText) as GeneratedContract;
 };
+
+// ---------------------------------------------------------------------------
+// Contract Document Lifecycle (Phase A: Upload → Ingest → Ready)
+// ---------------------------------------------------------------------------
+
+import { db } from '../../infra/db.js';
+import { NotFoundError, ValidationError } from '../../utils/errors.js';
+import { chatWithDocument } from '../chat/index.js';
+
+/** Canonical contract ingest lifecycle states. Mirrors the Prisma ContractIngestStatus enum. */
+export type ContractIngestStatus = 'UPLOADED' | 'INGESTING' | 'INDEXED' | 'READY' | 'FAILED';
+
+export interface UploadContractInput {
+  userId: string;
+  filename: string;
+  mimeType?: string;
+  content?: string;
+}
+
+export interface ContractDocumentDTO {
+  id: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  status: ContractIngestStatus;
+  errorMsg: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+function toDTO(doc: {
+  id: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  status: ContractIngestStatus;
+  errorMsg: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}): ContractDocumentDTO {
+  return {
+    id: doc.id,
+    filename: doc.filename,
+    mimeType: doc.mimeType,
+    sizeBytes: doc.sizeBytes,
+    status: doc.status,
+    errorMsg: doc.errorMsg,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+}
+
+export const uploadContractDocument = async (
+  input: UploadContractInput
+): Promise<ContractDocumentDTO> => {
+  const { userId, filename, mimeType = 'text/plain', content } = input;
+  const sizeBytes = content ? Buffer.byteLength(content, 'utf8') : 0;
+
+  const doc = await db.contractDocument.create({
+    data: { userId, filename, mimeType, sizeBytes, content, status: 'UPLOADED' },
+  });
+  return toDTO(doc);
+};
+
+export const ingestContractDocument = async (
+  id: string,
+  userId: string
+): Promise<ContractDocumentDTO> => {
+  const doc = await db.contractDocument.findUnique({ where: { id } });
+  if (!doc || doc.userId !== userId) throw new NotFoundError('Contract not found.');
+  if (doc.status !== 'UPLOADED') {
+    throw new ValidationError(`Cannot ingest a contract in status "${doc.status}". Expected UPLOADED.`);
+  }
+
+  // Mark as INGESTING
+  await db.contractDocument.update({ where: { id }, data: { status: 'INGESTING' } });
+
+  // Phase A stub: immediately mark READY (Phase B will add real embedding pipeline here)
+  const updated = await db.contractDocument.update({
+    where: { id },
+    data: { status: 'READY' },
+  });
+  return toDTO(updated);
+};
+
+export const getContractDocumentStatus = async (
+  id: string,
+  userId: string
+): Promise<ContractDocumentDTO> => {
+  const doc = await db.contractDocument.findUnique({ where: { id } });
+  if (!doc || doc.userId !== userId) throw new NotFoundError('Contract not found.');
+  return toDTO(doc);
+};
+
+export const askAboutContract = async (
+  contractId: string,
+  userId: string,
+  question: string
+): Promise<{ answer: string }> => {
+  const doc = await db.contractDocument.findUnique({ where: { id: contractId } });
+  if (!doc || doc.userId !== userId) throw new NotFoundError('Contract not found.');
+  if (doc.status !== 'READY' && doc.status !== 'INDEXED') {
+    throw new ValidationError(
+      `Contract is not ready for Q&A (current status: "${doc.status}"). Ingest the contract first.`
+    );
+  }
+  if (!doc.content) {
+    throw new ValidationError('Contract has no content to query against.');
+  }
+
+  // Phase A: use existing chat service with contract content as document context.
+  // Phase B: replace with RAG retrieval + generation.
+  const response = await chatWithDocument(doc.content, question);
+  return { answer: response.answer };
+};
