@@ -61,3 +61,43 @@ The refresh token is stored in an **httpOnly** cookie (`refresh_token`) with the
 - `path: /api/auth` — scoped to auth endpoints only
 - `maxAge: 30 days`
 
+---
+
+## API Contract Ownership (Phase A)
+
+**Canonical backend contract lives in `backend/src/routes/` + `backend/src/controllers/` + `backend/src/services/`.**  
+Frontend API wrappers in `api/*.ts` are typed client adapters — they must match backend contracts exactly.
+
+### Four Core MVP Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/contracts/upload` | Upload a contract document; returns `{ data: ContractDocument }` with `status: UPLOADED` |
+| `POST` | `/api/contracts/:id/ingest` | Start ingestion pipeline; transitions `UPLOADED → INGESTING → READY` |
+| `GET`  | `/api/contracts/:id/status` | Poll the contract's ingest lifecycle status |
+| `POST` | `/api/ask` | Ask a question about a `READY` contract; returns `{ data: { answer } }` |
+
+All four endpoints require a valid `Authorization: Bearer <accessToken>` header.
+
+### Contract Ingest Status Model
+
+```
+UPLOADED → INGESTING → READY
+                     → INDEXED   (Phase B: after embedding)
+                     → FAILED    (on error)
+```
+
+### Response Envelopes
+
+```jsonc
+// Success
+{ "data": { ... }, "meta"?: { ... } }
+
+// Error
+{ "error": { "code": "VALIDATION_ERROR", "message": "...", "details"?: ... } }
+```
+
+### Smoke Tests
+
+See [`backend/test-contracts.http`](backend/test-contracts.http) for ready-to-run HTTP examples for all four core endpoints.
+

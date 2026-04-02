@@ -93,7 +93,15 @@ async function request<T>(
   const data = await response.json().catch(() => ({ error: response.statusText }));
 
   if (!response.ok) {
-    throw new HttpError(response.status, data?.error ?? `Request failed: ${response.status}`);
+    // Support both canonical envelope { error: { code, message } } and legacy { error: string }
+    const errPayload = data?.error;
+    const errMessage =
+      typeof errPayload === 'string'
+        ? errPayload
+        : typeof errPayload?.message === 'string'
+          ? errPayload.message
+          : `Request failed: ${response.status}`;
+    throw new HttpError(response.status, errMessage);
   }
 
   return data as T;

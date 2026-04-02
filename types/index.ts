@@ -8,6 +8,12 @@
 export type {
   ApiSuccess,
   ApiError,
+  ApiErrorPayload,
   ApiResponse,
   PaginationMeta,
+  ContractIngestStatus,
+  ContractDocument,
+  UploadContractRequest,
+  AskRequest,
+  AskResponse,
 } from './api';

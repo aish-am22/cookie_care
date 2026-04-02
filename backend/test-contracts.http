@@ -1,0 +1,73 @@
+# Cookie Care – Phase A Core Endpoint Smoke Tests
+# Usage: open in VS Code REST Client, IntelliJ HTTP Client, or run with httpYac.
+# Set @baseUrl and @token before running.
+
+@baseUrl = http://localhost:3001
+@token = <YOUR_ACCESS_TOKEN>
+
+###
+# ── 1. Upload a contract document ──────────────────────────────────────────
+# POST /api/contracts/upload
+# Returns { data: ContractDocument } with status=UPLOADED
+POST {{baseUrl}}/api/contracts/upload
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "filename": "sample-nda.txt",
+  "mimeType": "text/plain",
+  "content": "NON-DISCLOSURE AGREEMENT\n\nThis Agreement is entered into as of 1 Jan 2026 between Party A and Party B.\n\n1. CONFIDENTIALITY\n   Each party agrees to keep the other party's confidential information secret.\n\n2. TERM\n   This Agreement shall remain in force for a period of two (2) years.\n\n3. GOVERNING LAW\n   This Agreement shall be governed by the laws of India."
+}
+
+# Expected: HTTP 201 – { "data": { "id": "...", "status": "UPLOADED", ... } }
+# Copy the returned `id` into @contractId below before running the next requests.
+
+###
+# ── 2. Ingest the uploaded contract ────────────────────────────────────────
+# POST /api/contracts/:id/ingest
+# Transitions status UPLOADED → INGESTING → READY (Phase A stub)
+# Replace <CONTRACT_ID> with the id from step 1.
+@contractId = <CONTRACT_ID>
+
+POST {{baseUrl}}/api/contracts/{{contractId}}/ingest
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+# Expected: HTTP 200 – { "data": { "id": "...", "status": "READY", ... } }
+
+###
+# ── 3. Check contract status ────────────────────────────────────────────────
+# GET /api/contracts/:id/status
+GET {{baseUrl}}/api/contracts/{{contractId}}/status
+Authorization: Bearer {{token}}
+
+# Expected: HTTP 200 – { "data": { "id": "...", "status": "READY", ... } }
+
+###
+# ── 4. Ask a question about the contract ───────────────────────────────────
+# POST /api/ask
+POST {{baseUrl}}/api/ask
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "contractId": "{{contractId}}",
+  "question": "What is the term (duration) of this agreement?"
+}
+
+# Expected: HTTP 200 – { "data": { "answer": "..." } }
+
+###
+# ── Health: Auth login (obtain a token for use above) ──────────────────────
+# POST /api/auth/login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "your@email.com",
+  "password": "YourPassword123!"
+}
+
+# Copy the returned accessToken into @token above.

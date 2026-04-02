@@ -1,5 +1,6 @@
 import type express from 'express';
 import logger from '../infra/logger.js';
+import { isAppError } from '../utils/errors.js';
 
 // Known application errors that should map to 4xx responses
 const AUTH_ERROR_MAP: Record<string, number> = {
@@ -24,16 +25,28 @@ export const errorHandler = (
 ): void => {
   const reqId = req.requestId ?? 'unknown';
 
-  // Check if this is a known domain error (auth, validation, etc.)
+  // AppError subclasses (NotFoundError, ValidationError, etc.) — use their metadata
+  if (isAppError(err)) {
+    res.status(err.statusCode).json({
+      error: {
+        code: err.code ?? 'ERROR',
+        message: err.message,
+        ...(err.details !== undefined ? { details: err.details } : {}),
+      },
+    });
+    return;
+  }
+
+  // Known domain errors (auth service messages) mapped to 4xx
   const statusCode = AUTH_ERROR_MAP[err.message];
   if (statusCode) {
-    res.status(statusCode).json({ error: err.message });
+    res.status(statusCode).json({ error: { code: 'AUTH_ERROR', message: err.message } });
     return;
   }
 
   logger.error({ err, reqId, path: req.path, method: req.method }, 'Unhandled error');
   res.status(500).json({
-    error: 'Internal server error',
+    error: { code: 'INTERNAL_ERROR', message: 'Internal server error' },
     requestId: reqId,
   });
 };
