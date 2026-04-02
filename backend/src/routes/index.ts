@@ -7,6 +7,7 @@ import legalRouter from './legal.routes.js';
 import contractsRouter, { generateContract } from './contracts.routes.js';
 import chatRouter from './chat.routes.js';
 import askRouter from './ask.routes.js';
+import aiRouter from './ai.routes.js';
 import { findPii, redactDocument } from '../controllers/redaction.controller.js';
 import authRoutes from "./auth.routes.js";
 import userRouter from './user.routes.js';
@@ -49,6 +50,9 @@ router.use('/chat-with-document', chatRouter);
 
 // Ask (RAG Q&A, Phase A stub): POST /api/ask
 router.use('/ask', askRouter);
+
+// AI RAG pipeline: POST /api/ai/ingest, /api/ai/retrieve, /api/ai/ask
+router.use('/ai', aiRouter);
 
 // User management: profile, password, sessions, scans
 router.use('/users', userRouter);

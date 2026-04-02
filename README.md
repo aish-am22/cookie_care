@@ -101,3 +101,219 @@ UPLOADED → INGESTING → READY
 
 See [`backend/test-contracts.http`](backend/test-contracts.http) for ready-to-run HTTP examples for all four core endpoints.
 
+
+---
+
+## RAG Foundation Scaffold
+
+Cookie Care includes a production-ready **Retrieval-Augmented Generation (RAG)** pipeline for legal document intelligence. This section documents the architecture, how to run it locally without real legal documents, and how to interact with the API.
+
+### Architecture Overview
+
+```
+                       ┌─────────────────────────────────────────────┐
+                       │                RAG Pipeline                   │
+                       │                                               │
+  Upload ──►  DocumentParser  ──►  Chunker  ──►  EmbeddingProvider    │
+                       │                              │                │
+                       │                              ▼                │
+                       │                         VectorStore           │
+                       │                              │                │
+  Question ──► RetrievalService ◄──────────────────────               │
+                       │                                               │
+                       ▼                                               │
+                  AskService ──► LLM (Gemini / stub) ──► AskResponse  │
+                       │                                               │
+                       ▼                                               │
+                  AiQueryLog (audit trace)                             │
+                       └─────────────────────────────────────────────┘
+```
+
+#### Module Layout
+
+```
+backend/src/ai/
+  ingest/
+    types.ts           # Interfaces: DocumentParser, Chunker, EmbeddingProvider, VectorStore
+    parser.ts          # PlainTextParser (HTML/text; PDF/DOCX adapters: TODO)
+    chunker.ts         # DefaultChunker (clause-aware + word-boundary fallback)
+    embedder.ts        # StubEmbeddingProvider (dev) + GeminiEmbeddingProvider (prod)
+    vectorStore.ts     # InMemoryVectorStore (dev) + PrismaVectorStore (prod)
+    ingestionService.ts# Orchestration: parse → chunk → embed → index
+  retrieval/
+    retrievalService.ts# Semantic retrieval with mandatory orgId tenant filter
+  qa/
+    prompts.ts         # Legal-grade prompt templates + guardrails
+    askService.ts      # Ask with citation-grade response + audit logging
+  __tests__/
+    chunker.test.ts
+    retrieval.test.ts
+    ask.test.ts
+```
+
+#### Data Models
+
+| Model | Purpose |
+|-------|---------|
+| `RagDocument` | Top-level document with `orgId` isolation + `docType` + `status` |
+| `DocumentVersion` | Immutable content snapshot; `contentHash` for dedup |
+| `DocumentChunk` | Parsed chunk with `embedding` JSON, `sectionLabel`, page ranges |
+| `AiQueryLog` | Full audit trace per query (user, org, retrieved ids, latency, model) |
+
+---
+
+### Running RAG Locally (No Real Documents Required)
+
+The RAG pipeline works out of the box in **stub mode** — no external API keys, no vector DB, no real legal documents needed.
+
+#### 1. Configure environment
+
+Add to `backend/.env`:
+
+```env
+# RAG pipeline (all optional – defaults shown)
+RAG_EMBEDDING_PROVIDER=stub      # "stub" (no key) | "gemini" (requires API key)
+RAG_VECTOR_STORE=memory          # "memory" (no DB) | "prisma" (Postgres)
+RAG_GENERATION_MODEL=gemini-2.5-flash
+RAG_STUB_GENERATION=false        # Set "true" to skip real LLM even when key is present
+```
+
+#### 2. Start the backend
+
+```bash
+cd backend
+npm run dev
+```
+
+#### 3. Authenticate
+
+```bash
+# Register / login to get an access token
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com","password":"yourpass"}'
+# → { "data": { "accessToken": "eyJ..." } }
+export TOKEN="eyJ..."
+```
+
+---
+
+### Ingesting Sample Documents
+
+```bash
+# Ingest a plain-text contract (no file upload needed in dev mode)
+curl -X POST http://localhost:3001/api/ai/ingest \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Sample NDA",
+    "filename": "nda.txt",
+    "mimeType": "text/plain",
+    "docType": "CONTRACT",
+    "content": "1. Confidentiality\nThe receiving party agrees to keep all disclosed information strictly confidential.\n\n2. Term\nThis agreement is effective for a period of two (2) years from the date of signing.\n\n3. Governing Law\nThis agreement shall be governed by the laws of India."
+  }'
+# → { "data": { "documentId": "...", "versionId": "...", "status": "INDEXED", "chunksIndexed": 3 } }
+```
+
+---
+
+### Example API Requests / Responses
+
+#### Debug Retrieval (`POST /api/ai/retrieve`)
+
+```bash
+curl -X POST http://localhost:3001/api/ai/retrieve \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What is the confidentiality obligation?"}'
+```
+
+```json
+{
+  "data": {
+    "chunks": [
+      {
+        "chunkIndex": 0,
+        "content": "1. Confidentiality\nThe receiving party agrees to keep all disclosed information strictly confidential.",
+        "sectionLabel": "1. Confidentiality",
+        "score": 0.912,
+        "documentId": "clxxx...",
+        "documentTitle": "Sample NDA",
+        "version": 1
+      }
+    ],
+    "latencyMs": 12
+  }
+}
+```
+
+#### Ask with Citations (`POST /api/ai/ask`)
+
+```bash
+curl -X POST http://localhost:3001/api/ai/ask \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"question": "How long does the confidentiality obligation last?"}'
+```
+
+```json
+{
+  "data": {
+    "answer": "Based on the document \"Sample NDA\" (2. Term): This agreement is effective for a period of two (2) years from the date of signing. [SOURCE 1]",
+    "citations": [
+      {
+        "documentId": "clxxx...",
+        "documentTitle": "Sample NDA",
+        "versionId": "clyyy...",
+        "version": 1,
+        "sectionLabel": "2. Term",
+        "snippet": "This agreement is effective for a period of two (2) years from the date of signing.",
+        "score": 0.887
+      }
+    ],
+    "confidence": "HIGH",
+    "needsHumanReview": false,
+    "traceId": "550e8400-e29b-41d4-a716-446655440000"
+  }
+}
+```
+
+#### Insufficient Evidence Response
+
+When no relevant context exists:
+
+```json
+{
+  "data": {
+    "answer": "INSUFFICIENT_EVIDENCE: No documents have been indexed for this organisation. Please ingest documents first.",
+    "citations": [],
+    "confidence": "INSUFFICIENT",
+    "needsHumanReview": true,
+    "traceId": "..."
+  }
+}
+```
+
+---
+
+### RAG API Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/api/ai/ingest` | Bearer | Ingest a document (parse → chunk → embed → index) |
+| `POST` | `/api/ai/retrieve` | Bearer | Debug: return raw ranked chunks for a query |
+| `POST` | `/api/ai/ask` | Bearer | Ask a question; returns answer + citations + confidence |
+
+All endpoints enforce `orgId`-based tenant isolation (currently scoped to the authenticated user).
+
+### Running Tests
+
+```bash
+cd backend
+npm test
+```
+
+Tests cover:
+- **Chunker**: basic invariants, size limits, section label preservation, hash correctness
+- **Retrieval tenant isolation**: cross-org data never leaks, documentId filter, topK limit
+- **Ask schema**: response contract, insufficient-evidence path, citation shape, traceId uniqueness
