@@ -36,6 +36,7 @@ model User {
   auditLogs               AuditLog[]
   scanRecords             ScanRecord[]
   contractDocuments       ContractDocument[]
+  ragDocuments            RagDocument[]
 
   @@index([role])
   @@index([createdAt])
@@ -139,6 +140,138 @@ model ContractDocument {
 
   @@index([userId])
   @@index([status])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// RAG Foundation Models
+// ---------------------------------------------------------------------------
+
+enum RagDocumentType {
+  CONTRACT
+  PLAYBOOK
+  TEMPLATE
+  POLICY
+  OTHER
+}
+
+enum RagDocumentStatus {
+  PENDING
+  INGESTING
+  INDEXED
+  FAILED
+}
+
+/// Top-level document record for the RAG pipeline.
+/// orgId defaults to userId for single-tenant mode; replace with real org FK when multi-tenancy lands.
+model RagDocument {
+  id        String            @id @default(cuid())
+  /// Tenant/org isolation key. Currently mirrors userId; ready for org-level multi-tenancy.
+  orgId     String
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  filename  String
+  mimeType  String            @default("text/plain")
+  sizeBytes Int               @default(0)
+  docType   RagDocumentType   @default(OTHER)
+  status    RagDocumentStatus @default(PENDING)
+  errorMsg  String?
+  /// Arbitrary extra metadata (governingLaw, counterparty, effectiveDate, etc.)
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  versions DocumentVersion[]
+  chunks   DocumentChunk[]
+
+  @@index([orgId])
+  @@index([userId])
+  @@index([docType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// Immutable version snapshot of a RagDocument's raw content.
+model DocumentVersion {
+  id         String      @id @default(cuid())
+  documentId String
+  document   RagDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  orgId      String
+  version    Int         @default(1)
+  content    String      @db.Text
+  /// SHA-256 hex of raw content for dedup / idempotency
+  contentHash String
+  isActive   Boolean     @default(true)
+
+  createdAt DateTime @default(now())
+
+  chunks DocumentChunk[]
+
+  @@unique([documentId, version])
+  @@index([orgId])
+  @@index([documentId])
+  @@index([contentHash])
+}
+
+/// A single text chunk derived from a DocumentVersion; holds embedding metadata.
+model DocumentChunk {
+  id         String          @id @default(cuid())
+  documentId String
+  document   RagDocument     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  versionId  String
+  version    DocumentVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  orgId      String
+  /// Monotonic index of this chunk within the document version
+  chunkIndex Int
+  /// Section heading / clause label if extracted
+  sectionLabel String?
+  pageStart  Int?
+  pageEnd    Int?
+  content    String          @db.Text
+  tokenCount Int             @default(0)
+  /// SHA-256 hex of chunk content for dedup
+  contentHash String
+  /// Serialised embedding vector (JSON array of floats) – populated after embed step
+  embedding  Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([orgId])
+  @@index([documentId])
+  @@index([versionId])
+  @@index([contentHash])
+}
+
+/// Audit trace for every AI query (retrieval + generation).
+model AiQueryLog {
+  id       String  @id @default(cuid())
+  orgId    String
+  userId   String?
+  traceId  String  @unique
+  question String  @db.Text
+  /// IDs of chunks retrieved for this query
+  retrievedChunkIds Json?
+  /// Number of chunks retrieved
+  retrievedCount    Int      @default(0)
+  answer            String?  @db.Text
+  confidence        String?
+  needsHumanReview  Boolean  @default(false)
+  /// LLM provider + model used (null when stub/dev mode)
+  modelProvider     String?
+  modelName         String?
+  /// Approximate token counts
+  promptTokens      Int?
+  completionTokens  Int?
+  /// Wall-clock latency in milliseconds
+  latencyMs         Int?
+  errorMsg          String?
+
+  createdAt DateTime @default(now())
+
+  @@index([orgId])
+  @@index([userId])
   @@index([createdAt])
 }
 

@@ -21,6 +21,19 @@ const envSchema = z.object({
   SMTP_PORT: z.coerce.number().int().positive().optional(),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
+  // ---------------------------------------------------------------------------
+  // RAG pipeline configuration
+  // ---------------------------------------------------------------------------
+  /** Embedding provider: "stub" (default, no key needed) | "gemini" */
+  RAG_EMBEDDING_PROVIDER: z.enum(['stub', 'gemini']).default('stub'),
+  /** Gemini embedding model (used when RAG_EMBEDDING_PROVIDER=gemini). */
+  RAG_EMBEDDING_MODEL: z.string().default('text-embedding-004'),
+  /** Vector store backend: "memory" (default) | "prisma" */
+  RAG_VECTOR_STORE: z.enum(['memory', 'prisma']).default('memory'),
+  /** Gemini generation model for RAG answers. */
+  RAG_GENERATION_MODEL: z.string().default('gemini-2.5-flash'),
+  /** Set to "true" to force stub (deterministic) answer generation even when an API key is available. */
+  RAG_STUB_GENERATION: z.enum(['true', 'false']).default('false'),
 }).refine((data) => Boolean(data.API_KEY || data.GEMINI_API_KEY), {
   message: 'API_KEY or GEMINI_API_KEY is required',
   path: ['API_KEY'],
