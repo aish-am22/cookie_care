@@ -79,26 +79,27 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
       },
     });
     documentId = ragDoc.id;
+    const currentDocumentId = ragDoc.id;
 
     // -----------------------------------------------------------------------
     // 2. Resolve next version number (1-based, monotonic)
     // -----------------------------------------------------------------------
-    const existing = await db.documentVersion.count({ where: { documentId } });
+    const existing = await db.documentVersion.count({ where: { documentId: currentDocumentId } });
     const versionNumber = existing + 1;
     const contentHash = sha256(content);
 
     // Check for duplicate content (idempotency)
     const duplicate = await db.documentVersion.findFirst({
-      where: { documentId, contentHash },
+      where: { documentId: currentDocumentId, contentHash },
     });
     if (duplicate) {
-      logger.info({ documentId, contentHash }, '[RAG] Skipping ingest – identical content already indexed');
+      logger.info({ documentId: currentDocumentId, contentHash }, '[RAG] Skipping ingest – identical content already indexed');
       await db.ragDocument.update({
-        where: { id: documentId },
+        where: { id: currentDocumentId },
         data: { status: 'INDEXED' },
       });
       return {
-        documentId,
+        documentId: currentDocumentId,
         versionId: duplicate.id,
         status: 'INDEXED',
         chunksIndexed: 0,
@@ -107,7 +108,7 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
 
     const docVersion = await db.documentVersion.create({
       data: {
-        documentId,
+        documentId: currentDocumentId,
         orgId,
         version: versionNumber,
         content,
@@ -144,7 +145,7 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
 
       const dbChunk = await db.documentChunk.create({
         data: {
-          documentId,
+          documentId: currentDocumentId,
           versionId,
           orgId,
           chunkIndex: chunk.chunkIndex,
@@ -161,7 +162,7 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
       vectorEntries.push({
         id: dbChunk.id,
         orgId,
-        documentId,
+        documentId: currentDocumentId,
         documentTitle: title,
         versionId,
         version: versionNumber,
@@ -178,17 +179,17 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
     // 6. Mark document as INDEXED
     // -----------------------------------------------------------------------
     await db.ragDocument.update({
-      where: { id: documentId },
+      where: { id: currentDocumentId },
       data: { status: 'INDEXED' },
     });
 
     const latencyMs = Date.now() - startMs;
     logger.info(
-      { documentId, versionId, chunksIndexed: chunks.length, latencyMs },
+      { documentId: currentDocumentId, versionId, chunksIndexed: chunks.length, latencyMs },
       '[RAG] Ingestion complete',
     );
 
-    return { documentId, versionId, status: 'INDEXED', chunksIndexed: chunks.length };
+    return { documentId: currentDocumentId, versionId, status: 'INDEXED', chunksIndexed: chunks.length };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     logger.error({ documentId, err }, '[RAG] Ingestion failed');

@@ -16,6 +16,10 @@ import type {
 export class InMemoryVectorStore implements VectorStore {
   private readonly _store = new Map<string, VectorStoreEntry>();
 
+  get size(): number {
+    return this._store.size;
+  }
+
   async upsert(entries: VectorStoreEntry[]): Promise<void> {
     for (const entry of entries) {
       this._store.set(entry.id, entry);
@@ -118,12 +122,20 @@ export class PrismaVectorStore implements VectorStore {
 
   async deleteByDocument(documentId: string, orgId: string): Promise<void> {
     const { db } = await import('../../infra/db.js');
-    await db.documentChunk.deleteMany({ where: { documentId, orgId } });
+    await db.$executeRawUnsafe(
+      'DELETE FROM "DocumentChunk" WHERE "documentId" = $1 AND "orgId" = $2',
+      documentId,
+      orgId,
+    );
   }
 
   async count(orgId: string): Promise<number> {
     const { db } = await import('../../infra/db.js');
-    return db.documentChunk.count({ where: { orgId } });
+    const result = await db.$queryRawUnsafe<Array<{ count: bigint }>>(
+      'SELECT COUNT(*)::bigint AS count FROM "DocumentChunk" WHERE "orgId" = $1',
+      orgId,
+    );
+    return Number(result[0]?.count ?? 0n);
   }
 }
 

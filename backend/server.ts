@@ -7,6 +7,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import logger from './src/infra/logger.js';
+import { env } from './src/config/index.js';
 import { requestId } from './src/middlewares/requestId.js';
 import { errorHandler } from './src/middlewares/errorHandler.js';
 import { rateLimitMiddleware } from './src/middlewares/rateLimit.js';
@@ -21,6 +22,17 @@ if (!process.env.API_KEY) {
 
 const app = express();
 const port = 3001;
+
+function parseTrustProxy(value: string): boolean | number | string {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'true') return true;
+  if (normalized === 'false') return false;
+  const asNumber = Number(normalized);
+  if (Number.isInteger(asNumber) && asNumber >= 0) return asNumber;
+  return value;
+}
+
+app.set('trust proxy', parseTrustProxy(env.TRUST_PROXY));
 
 app.use(cors({ ...corsOptions, credentials: true }));
 // Increase request body limit to 50mb to handle large base64 PDF payloads

@@ -14,6 +14,7 @@ const envSchema = z.object({
   BCRYPT_ROUNDS: z.coerce.number().int().positive().default(12),
   PORT: z.coerce.number().int().positive().default(3001),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  TRUST_PROXY: z.string().default('1'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
