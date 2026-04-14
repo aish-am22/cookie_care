@@ -16,9 +16,16 @@ const REQUIRED_TABLES = [
 ] as const;
 
 async function findMissingTables(): Promise<string[]> {
+  const tableNames = REQUIRED_TABLES.map((name) => {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
+      throw new Error(`Invalid table name in readiness check: ${name}`);
+    }
+    return name;
+  });
+
   const rows = await db.$queryRawUnsafe<Array<{ table_name: string; table_regclass: string | null }>>(`
     SELECT required.table_name, to_regclass(format('public.%I', required.table_name))::text AS table_regclass
-    FROM (VALUES ${REQUIRED_TABLES.map((name) => `('${name}')`).join(', ')}) AS required(table_name)
+    FROM (VALUES ${tableNames.map((name) => `('${name}')`).join(', ')}) AS required(table_name)
   `);
 
   return rows.filter((row) => row.table_regclass === null).map((row) => row.table_name);

@@ -73,7 +73,12 @@ BEGIN
       WHERE schemaname = 'public'
         AND indexname = 'DocumentChunk_embedding_vec_idx'
     ) THEN
-      EXECUTE 'CREATE INDEX "DocumentChunk_embedding_vec_idx" ON "DocumentChunk" USING ivfflat ("embedding_vec" vector_cosine_ops) WITH (lists = 100)';
+      EXECUTE format(
+        'CREATE INDEX %I ON %I USING ivfflat (%I vector_cosine_ops) WITH (lists = 100)',
+        'DocumentChunk_embedding_vec_idx',
+        'DocumentChunk',
+        'embedding_vec'
+      );
     END IF;
   END IF;
 END $$;
