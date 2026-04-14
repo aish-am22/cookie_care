@@ -25,7 +25,7 @@ async function findMissingTables(): Promise<string[]> {
 
   const rows = await db.$queryRaw<Array<{ table_name: string; table_regclass: string | null }>>`
     SELECT required.table_name, to_regclass(format('public.%I', required.table_name))::text AS table_regclass
-    FROM unnest(${tableNames}) AS required(table_name)
+    FROM unnest(${tableNames}::text[]) AS required(table_name)
   `;
 
   return rows.filter((row) => row.table_regclass === null).map((row) => row.table_name);
