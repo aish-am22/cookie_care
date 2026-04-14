@@ -6,11 +6,32 @@ Express + TypeScript backend for Cookie Care.
 
 ```bash
 npm install
+npm run prisma:generate
+npm run prisma:migrate:deploy
 npm run build
 npm start
 ```
 
 Set the required environment variables (see `.env.example`) before starting.
+
+### Database setup and drift recovery
+
+Use the Prisma migration history as the source of truth.
+
+```bash
+# Apply all checked-in migrations (safe for existing DBs)
+npm run prisma:migrate:deploy
+
+# Development reset when drift is detected
+npm run prisma:migrate:reset
+npm run prisma:generate
+```
+
+If startup reports missing required tables (for example `ScanRecord`), apply migrations and restart:
+
+```bash
+npm run prisma:migrate:deploy
+```
 
 ---
 

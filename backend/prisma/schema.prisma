@@ -235,6 +235,8 @@ model DocumentChunk {
   contentHash String
   /// Serialised embedding vector (JSON array of floats) – populated after embed step
   embedding  Json?
+  /// pgvector column used by raw SQL similarity search in PrismaVectorStore
+  embeddingVec Unsupported("vector(768)")? @map("embedding_vec")
 
   createdAt DateTime @default(now())
 
