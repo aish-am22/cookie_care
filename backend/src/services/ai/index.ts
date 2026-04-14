@@ -1,9 +1,11 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { env } from '../../config/env.js';
+import logger from '../../infra/logger.js';
 
 export { Type };
 
-export const ai = new GoogleGenAI({ apiKey: env.API_KEY });
+const aiApiKey = env.GEMINI_API_KEY ?? env.API_KEY;
+export const ai = new GoogleGenAI({ apiKey: aiApiKey });
 export const model = 'gemini-2.5-flash';
 
 /**
@@ -17,7 +19,7 @@ export class AiCallQueue {
   private readonly minInterval: number = 6100;
 
   add<T>(task: () => Promise<T>): Promise<T> {
-    console.log(`[AI_QUEUE] Task added. Queue size: ${this.queue.length + 1}`);
+    logger.debug({ queueSize: this.queue.length + 1 }, '[AI_QUEUE] Task added');
     return new Promise((resolve, reject) => {
       this.queue.push({ task, resolve, reject });
       if (!this.isProcessing) {
@@ -29,19 +31,19 @@ export class AiCallQueue {
   private async processQueue() {
     if (this.queue.length === 0) {
       this.isProcessing = false;
-      console.log('[AI_QUEUE] Queue empty. Worker is idle.');
+      logger.debug('[AI_QUEUE] Queue empty');
       return;
     }
 
     this.isProcessing = true;
     const { task, resolve, reject } = this.queue.shift()!;
-    console.log(`[AI_QUEUE] Processing task. Tasks remaining: ${this.queue.length}`);
+    logger.debug({ remaining: this.queue.length }, '[AI_QUEUE] Processing task');
 
     try {
       const result = await task();
       resolve(result);
     } catch (err) {
-      console.error('[AI_QUEUE] Task failed:', err);
+      logger.warn({ err }, '[AI_QUEUE] Task failed');
       reject(err);
     } finally {
       setTimeout(() => this.processQueue(), this.minInterval);

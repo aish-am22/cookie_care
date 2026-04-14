@@ -1,6 +1,7 @@
 import type express from 'express';
 import logger from '../infra/logger.js';
 import { isAppError } from '../utils/errors.js';
+import { getPrismaErrorCode, isAiCredentialError, isPrismaSchemaError } from '../utils/prismaErrors.js';
 
 // Known application errors that should map to 4xx responses
 const AUTH_ERROR_MAP: Record<string, number> = {
@@ -41,6 +42,34 @@ export const errorHandler = (
   const statusCode = AUTH_ERROR_MAP[err.message];
   if (statusCode) {
     res.status(statusCode).json({ error: { code: 'AUTH_ERROR', message: err.message } });
+    return;
+  }
+
+  if (isPrismaSchemaError(err)) {
+    logger.warn(
+      { reqId, path: req.path, method: req.method, prismaCode: getPrismaErrorCode(err) },
+      'Database schema mismatch detected. Run prisma migrate deploy.'
+    );
+    res.status(503).json({
+      error: {
+        code: 'DATABASE_SCHEMA_NOT_READY',
+        message:
+          'Database schema is not ready for this endpoint. Run `npx prisma migrate deploy` and restart the backend.',
+      },
+      requestId: reqId,
+    });
+    return;
+  }
+
+  if (isAiCredentialError(err)) {
+    logger.warn({ reqId, path: req.path, method: req.method }, 'AI provider credential error');
+    res.status(502).json({
+      error: {
+        code: 'AI_PROVIDER_AUTH_ERROR',
+        message: 'AI provider authentication failed. Check GEMINI_API_KEY/API_KEY configuration.',
+      },
+      requestId: reqId,
+    });
     return;
   }
 
