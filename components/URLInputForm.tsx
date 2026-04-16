@@ -16,8 +16,8 @@ export const URLInputForm: React.FC<URLInputFormProps> = ({ url, setUrl, onScan,
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full bg-[var(--bg-secondary)] p-6 rounded-xl border border-[var(--border-primary)] shadow-sm">
-      <label htmlFor="url-input" className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+    <form onSubmit={handleSubmit} className="w-full bg-white p-6 rounded-2xl border border-[var(--border-primary)] shadow-sm">
+      <label htmlFor="url-input" className="block text-sm font-semibold text-[var(--text-headings)] mb-1">
         Website URL
       </label>
       <div className="relative">
@@ -32,12 +32,12 @@ export const URLInputForm: React.FC<URLInputFormProps> = ({ url, setUrl, onScan,
           placeholder="e.g., https://www.example.com"
           required
           disabled={isLoading}
-          className="w-full pl-11 pr-36 py-3 text-base bg-[var(--bg-primary)] text-[var(--text-headings)] border border-[var(--border-primary)] rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue transition duration-150 ease-in-out disabled:bg-[var(--bg-tertiary)]"
+          className="w-full h-12 pl-11 pr-36 text-base bg-[var(--bg-secondary)] text-[var(--text-headings)] border border-[var(--border-primary)] rounded-xl focus:ring-2 focus:ring-brand-blue focus:border-brand-blue transition duration-150 ease-in-out disabled:bg-[var(--bg-tertiary)]"
         />
         <button
           type="submit"
           disabled={isLoading}
-          className="absolute inset-y-0 right-0 flex items-center justify-center px-6 m-1.5 font-semibold text-white bg-brand-blue rounded-md shadow-lg shadow-blue-500/20 dark:shadow-blue-500/10 hover:bg-brand-blue-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] focus:ring-brand-blue transition-all duration-200 disabled:bg-slate-400 dark:disabled:bg-slate-600 disabled:shadow-none disabled:cursor-not-allowed"
+          className="absolute inset-y-0 right-0 flex items-center justify-center px-6 m-1.5 font-semibold text-white bg-brand-blue rounded-lg shadow-sm hover:bg-brand-blue-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] focus:ring-brand-blue transition-all duration-200 disabled:bg-slate-400 dark:disabled:bg-slate-600 disabled:shadow-none disabled:cursor-not-allowed"
         >
           {isLoading ? 'Scanning...' : 'Scan Website'}
         </button>

@@ -9,9 +9,9 @@ export default {
     extend: {
       colors: {
         'brand-blue': {
-          DEFAULT: 'hsl(210, 90%, 50%)',
-          'light': 'hsl(210, 90%, 55%)',
-          'dark': 'hsl(210, 90%, 45%)',
+          DEFAULT: 'hsl(243, 82%, 60%)',
+          'light': 'hsl(243, 82%, 66%)',
+          'dark': 'hsl(243, 82%, 52%)',
         },
       }
     },
