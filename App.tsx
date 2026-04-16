@@ -116,7 +116,7 @@ const MainApp: React.FC = () => {
 
   const pageMeta: Record<View, { title: string; description: string }> = {
     dashboard: {
-      title: 'Compliance Workspace',
+      title: 'Dashboard',
       description: 'Your compliance overview — scans, risk trends, and recent activity at a glance.',
     },
     scanner: {
