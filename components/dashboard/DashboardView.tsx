@@ -235,7 +235,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-[var(--text-headings)]">Dashboard</h2>
+          <h2 className="text-2xl font-bold text-[var(--text-headings)]">Overview</h2>
           <p className="mt-1 text-sm text-[var(--text-primary)]">Your compliance overview at a glance</p>
         </div>
         <button
