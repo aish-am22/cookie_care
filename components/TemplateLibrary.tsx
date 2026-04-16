@@ -65,11 +65,12 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ templates, onT
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="md:col-span-1">
-                <div className="bg-[var(--bg-secondary)] p-6 rounded-xl border border-[var(--border-primary)] shadow-sm">
-                    <h3 className="text-lg font-bold text-[var(--text-headings)] mb-4">Add New Template</h3>
+                <div className="bg-white p-6 rounded-2xl border border-[var(--border-primary)] shadow-sm">
+                    <h3 className="text-lg font-bold text-[var(--text-headings)] mb-1">Add New Template</h3>
+                    <p className="text-xs text-[var(--text-primary)] mb-4">Upload approved legal templates to reuse during generation.</p>
                     <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".docx,.txt" className="hidden" disabled={isUploading}/>
                     <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading}
-                        className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-[var(--border-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors disabled:opacity-50">
+                        className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-[var(--border-primary)] rounded-xl hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-50">
                         <UploadCloudIcon className="h-10 w-10 text-brand-blue" />
                         <span className="mt-2 text-sm font-semibold text-[var(--text-headings)]">
                            {isUploading ? `Uploading ${fileName}...` : 'Upload Template'}
@@ -85,25 +86,26 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ templates, onT
                 </div>
             </div>
             <div className="md:col-span-2">
-                 <div className="bg-[var(--bg-secondary)] p-6 rounded-xl border border-[var(--border-primary)] shadow-sm">
+                 <div className="bg-white p-6 rounded-2xl border border-[var(--border-primary)] shadow-sm">
                     <h3 className="text-lg font-bold text-[var(--text-headings)] mb-4">Available Templates ({templates.length})</h3>
                     <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
                         {templates.length > 0 ? templates.map(template => (
-                           <div key={template.id} className="flex items-center justify-between bg-[var(--bg-primary)] p-3 rounded-lg border border-[var(--border-primary)]">
+                           <div key={template.id} className="flex items-center justify-between bg-[var(--bg-secondary)] p-3 rounded-xl border border-[var(--border-primary)]">
                                <div className="flex items-center gap-3">
-                                   <BookOpenIcon className="h-5 w-5 text-brand-blue" />
-                                   <p className="text-sm font-medium text-[var(--text-headings)]">{template.name}</p>
+                                    <BookOpenIcon className="h-5 w-5 text-brand-blue" />
+                                    <p className="text-sm font-medium text-[var(--text-headings)]">{template.name}</p>
                                </div>
                                <button onClick={() => handleDelete(template.id)} className="p-1.5 rounded-full text-slate-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/50 transition-colors" aria-label="Delete template">
                                    <TrashIcon className="h-5 w-5" />
                                </button>
                            </div>
                         )) : (
-                            <div className="text-center py-10 border-2 border-dashed border-[var(--border-primary)] rounded-lg">
-                                <p className="text-[var(--text-primary)]">No templates uploaded yet.</p>
-                                <p className="text-sm text-[var(--text-primary)]/80 mt-1">Upload a template to get started.</p>
-                            </div>
-                        )}
+                             <div className="text-center py-12 border-2 border-dashed border-[var(--border-primary)] rounded-xl bg-[var(--bg-secondary)]/50">
+                                 <BookOpenIcon className="mx-auto h-10 w-10 text-[var(--text-primary)]/50" />
+                                 <p className="text-[var(--text-headings)] font-medium mt-3">No templates uploaded yet.</p>
+                                 <p className="text-sm text-[var(--text-primary)]/80 mt-1">Upload DOCX or TXT files to build your template library.</p>
+                             </div>
+                         )}
                     </div>
                 </div>
             </div>

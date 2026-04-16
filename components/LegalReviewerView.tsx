@@ -50,6 +50,24 @@ const contractFieldsConfig: Record<string, Record<string, any>> = {
   },
 };
 
+const contractSectionsConfig: Record<string, { title: string; description: string; fields: string[] }[]> = {
+  'Non-Disclosure Agreement (NDA)': [
+    { title: 'Overview', description: 'Core parties and timeline for this agreement.', fields: ['disclosingParty', 'receivingParty', 'effectiveDate', 'term'] },
+    { title: 'Data Handling', description: 'Define what is shared and why.', fields: ['purpose'] },
+    { title: 'Risk and Exposure', description: 'Set governing legal jurisdiction.', fields: ['governingLaw'] },
+  ],
+  'Consulting Agreement': [
+    { title: 'Overview', description: 'Who is engaged and for how long.', fields: ['consultantName', 'clientName', 'term'] },
+    { title: 'Data Handling', description: 'Describe services and delivery scope.', fields: ['services'] },
+    { title: 'Risk and Exposure', description: 'Compensation model and jurisdiction.', fields: ['compensation', 'governingLaw'] },
+  ],
+  'Service Agreement': [
+    { title: 'Overview', description: 'Confirm service provider and customer details.', fields: ['providerName', 'clientName', 'term'] },
+    { title: 'Data Handling', description: 'Define service obligations and deliverables.', fields: ['services'] },
+    { title: 'Risk and Exposure', description: 'Capture payment and governing law terms.', fields: ['paymentTerms', 'governingLaw'] },
+  ],
+};
+
 
 const ContractDetailsForm: React.FC<{
     contractType: string;
@@ -89,36 +107,47 @@ const ContractDetailsForm: React.FC<{
 
     if (Object.keys(fields).length === 0) return null;
 
+    const sections = contractSectionsConfig[contractType] || [{ title: 'Contract Details', description: 'Provide all required information.', fields: Object.keys(fields) }];
+
     return (
-        <div className="space-y-4 pt-4 border-t border-[var(--border-primary)]">
-            <h3 className="text-md font-semibold text-[var(--text-headings)]">Key Details for {contractType}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.entries(fields).map(([id, config]) => (
-                <div key={id} className={config.type === 'textarea' ? 'md:col-span-2' : ''}>
-                    <label htmlFor={id} className="block text-sm font-medium text-[var(--text-primary)]">{config.label}</label>
-                    {config.type === 'textarea' ? (
-                         <textarea id={id} value={details[id] || ''} onChange={e => handleChange(id, e.target.value)} disabled={isLoading} rows={3}
-                                className="mt-1 w-full text-sm bg-[var(--bg-primary)] text-[var(--text-headings)] border border-[var(--border-primary)] rounded-lg focus:ring-2 focus:ring-brand-blue p-2" placeholder={config.placeholder} />
-                    ) : config.type === 'select' ? (
-                        <>
-                         <select id={id} value={details[id] || ''} onChange={e => handleChange(id, e.target.value)} disabled={isLoading}
-                                className="mt-1 block w-full py-2 px-3 border border-[var(--border-primary)] bg-[var(--bg-primary)] rounded-md shadow-sm focus:outline-none focus:ring-brand-blue focus:border-brand-blue sm:text-sm">
-                            <option value="">Select a Jurisdiction</option>
-                            {config.options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
-                            <option value="Other">Other...</option>
-                        </select>
-                        {details.governingLaw === 'Other' && (
-                            <input type="text" value={otherGoverningLaw} onChange={e => setOtherGoverningLaw(e.target.value)} disabled={isLoading} placeholder="Specify jurisdiction"
-                                className="mt-2 w-full text-sm bg-[var(--bg-primary)] text-[var(--text-headings)] border border-[var(--border-primary)] rounded-lg focus:ring-2 focus:ring-brand-blue p-2" />
-                        )}
-                        </>
-                    ) : (
-                         <input id={id} type={config.type} value={details[id] || ''} onChange={e => handleChange(id, e.target.value)} disabled={isLoading} placeholder={config.placeholder}
-                                className="mt-1 w-full text-sm bg-[var(--bg-primary)] text-[var(--text-headings)] border border-[var(--border-primary)] rounded-lg focus:ring-2 focus:ring-brand-blue p-2" />
-                    )}
+        <div className="space-y-5 pt-5 border-t border-[var(--border-primary)]">
+            {sections.map(section => (
+                <div key={section.title} className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/60 p-4 sm:p-5">
+                    <h3 className="text-base font-semibold text-[var(--text-headings)]">{section.title}</h3>
+                    <p className="mt-1 text-xs text-[var(--text-primary)]">{section.description}</p>
+                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {section.fields.map(id => {
+                            const config = fields[id];
+                            if (!config) return null;
+                            return (
+                                <div key={id} className={config.type === 'textarea' ? 'md:col-span-2' : ''}>
+                                    <label htmlFor={id} className="block text-sm font-medium text-[var(--text-primary)]">{config.label}</label>
+                                    {config.type === 'textarea' ? (
+                                        <textarea id={id} value={details[id] || ''} onChange={e => handleChange(id, e.target.value)} disabled={isLoading} rows={3}
+                                            className="mt-1.5 w-full text-sm bg-white text-[var(--text-headings)] border border-[var(--border-primary)] rounded-xl focus:ring-2 focus:ring-brand-blue p-3" placeholder={config.placeholder} />
+                                    ) : config.type === 'select' ? (
+                                        <>
+                                            <select id={id} value={details[id] || ''} onChange={e => handleChange(id, e.target.value)} disabled={isLoading}
+                                                className="mt-1.5 block w-full h-11 px-3 border border-[var(--border-primary)] bg-white rounded-xl focus:outline-none focus:ring-brand-blue focus:border-brand-blue text-sm">
+                                                <option value="">Select a Jurisdiction</option>
+                                                {config.options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                                                <option value="Other">Other...</option>
+                                            </select>
+                                            {details.governingLaw === 'Other' && (
+                                                <input type="text" value={otherGoverningLaw} onChange={e => setOtherGoverningLaw(e.target.value)} disabled={isLoading} placeholder="Specify jurisdiction"
+                                                    className="mt-2 w-full h-11 text-sm bg-white text-[var(--text-headings)] border border-[var(--border-primary)] rounded-xl focus:ring-2 focus:ring-brand-blue px-3" />
+                                            )}
+                                        </>
+                                    ) : (
+                                        <input id={id} type={config.type} value={details[id] || ''} onChange={e => handleChange(id, e.target.value)} disabled={isLoading} placeholder={config.placeholder}
+                                            className="mt-1.5 w-full h-11 text-sm bg-white text-[var(--text-headings)] border border-[var(--border-primary)] rounded-xl focus:ring-2 focus:ring-brand-blue px-3" />
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             ))}
-            </div>
         </div>
     );
 };
@@ -279,8 +308,8 @@ export const LegalReviewerView: React.FC = () => {
     const ViewModeTab: React.FC<{mode: ViewMode, label: string, icon: React.ReactNode}> = ({mode, label, icon}) => (
         <button
             onClick={() => { setViewMode(mode); resetViews(); }}
-            className={`flex items-center space-x-2 px-4 py-2 text-sm font-bold rounded-md transition-colors duration-200 w-full justify-center sm:w-auto ${
-                viewMode === mode ? 'bg-brand-blue text-white shadow-md' : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
+            className={`flex items-center space-x-2 px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors duration-200 w-full justify-center sm:w-auto ${
+                viewMode === mode ? 'bg-white text-[var(--text-headings)] shadow-sm border border-[var(--border-primary)]' : 'text-[var(--text-primary)] hover:bg-white/70'
             }`}
         >
             {icon}
@@ -291,7 +320,7 @@ export const LegalReviewerView: React.FC = () => {
     return (
         <>
             <div className="max-w-5xl mx-auto mt-6">
-                <div className="flex flex-col sm:flex-row justify-center p-1.5 bg-[var(--bg-tertiary)] rounded-lg space-y-2 sm:space-y-0 sm:space-x-2 mb-6">
+                <div className="flex flex-col sm:flex-row justify-center p-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-2xl space-y-2 sm:space-y-0 sm:space-x-2 mb-6">
                     <ViewModeTab mode="redact" label="Document Redactor" icon={<RedactIcon className="h-5 w-5"/>} />
                     <ViewModeTab mode="generate" label="Generate Contract" icon={<DocumentTextIcon className="h-5 w-5"/>} />
                     <ViewModeTab mode="analyze" label="Analyze Document" icon={<ScaleIcon className="h-5 w-5"/>} />
@@ -301,51 +330,51 @@ export const LegalReviewerView: React.FC = () => {
                 {viewMode === 'redact' && <DocumentRedactorView />}
 
                 {viewMode === 'analyze' && (
-                    <div className="bg-[var(--bg-secondary)] p-6 rounded-xl border border-[var(--border-primary)] shadow-sm animate-fade-in-up">
+                    <div className="bg-white p-6 rounded-2xl border border-[var(--border-primary)] shadow-sm animate-fade-in-up">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                                <label className="block text-sm font-medium text-[var(--text-primary)]">Paste Document Text or Upload</label>
+                            <div className="space-y-4 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/60 p-4">
+                                <label className="block text-sm font-semibold text-[var(--text-headings)]">Paste Document Text or Upload</label>
                                 <textarea id="dpa-text" value={documentText} onChange={(e) => { setDocumentText(e.target.value); if(fileName) setFileName(''); }}
                                     placeholder="Paste the full text from your legal document here..." disabled={isLoading || isParsing} rows={12}
-                                    className="w-full text-sm bg-[var(--bg-primary)] text-[var(--text-headings)] border border-[var(--border-primary)] rounded-lg focus:ring-2 focus:ring-brand-blue p-4 font-mono"/>
+                                    className="w-full text-sm bg-white text-[var(--text-headings)] border border-[var(--border-primary)] rounded-xl focus:ring-2 focus:ring-brand-blue p-4 font-mono"/>
                                 <div className="text-center my-2 text-xs text-[var(--text-primary)] font-semibold">OR</div>
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".docx,.txt" className="hidden" disabled={isLoading || isParsing}/>
                                 <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isLoading || isParsing}
-                                    className="w-full flex flex-col items-center justify-center p-4 border-2 border-dashed border-[var(--border-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors disabled:opacity-50">
+                                    className="w-full flex flex-col items-center justify-center p-4 border-2 border-dashed border-[var(--border-primary)] rounded-xl hover:bg-white transition-colors disabled:opacity-50">
                                     <UploadCloudIcon className="h-8 w-8 text-brand-blue" />
                                     <span className="mt-2 text-sm font-semibold text-[var(--text-headings)]">{isParsing ? 'Parsing...' : (fileName ? `File: ${fileName}`: 'Upload Document')}</span>
                                     <span className="text-xs text-[var(--text-primary)]">DOCX or TXT supported</span>
                                 </button>
                             </div>
-                            <div className="space-y-4">
+                            <div className="space-y-4 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/60 p-4">
                                 <div>
-                                   <p className="block text-sm font-medium text-[var(--text-primary)]">Review Perspective</p>
+                                   <p className="block text-sm font-semibold text-[var(--text-headings)]">Review Perspective</p>
                                    <p className="text-xs text-[var(--text-primary)]/80 mb-2">Select a role to tailor the risk analysis, or choose Neutral.</p>
                                 </div>
                                 <div className="space-y-3">
                                     {(['neutral', 'controller', 'processor'] as LegalPerspective[]).map(p => (
-                                        <label key={p} className={`flex items-start p-3 border rounded-lg cursor-pointer transition-colors ${perspective === p ? 'bg-brand-blue/10 border-brand-blue' : 'bg-[var(--bg-primary)] border-[var(--border-primary)] hover:border-slate-400'}`}>
+                                        <label key={p} className={`flex items-start p-3 border rounded-xl cursor-pointer transition-colors ${perspective === p ? 'bg-brand-blue/10 border-brand-blue' : 'bg-white border-[var(--border-primary)] hover:border-slate-400'}`}>
                                             <input type="radio" name="perspective" value={p} checked={perspective === p} onChange={() => setPerspective(p)} className="h-4 w-4 mt-0.5 text-brand-blue focus:ring-brand-blue"/>
                                             <span className="ml-3 text-sm font-bold text-[var(--text-headings)] capitalize">{p}</span>
                                         </label>
                                     ))}
                                 </div>
                                  <button type="button" onClick={handleAnalyze} disabled={isLoading || isParsing || !documentText.trim()}
-                                    className="w-full flex items-center justify-center gap-2 mt-6 px-6 py-3 font-semibold text-white bg-brand-blue rounded-md shadow-lg hover:bg-brand-blue-light focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all disabled:bg-slate-400 disabled:cursor-not-allowed">
-                                   <ScaleIcon className="h-5 w-5" />
-                                   {isLoading ? 'Analyzing...' : (isParsing ? 'Waiting...' : 'Analyze Document')}
-                                </button>
+                                    className="w-full flex items-center justify-center gap-2 mt-6 px-6 h-11 font-semibold text-white bg-brand-blue rounded-xl shadow-sm hover:bg-brand-blue-light focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all disabled:bg-slate-400 disabled:cursor-not-allowed">
+                                    <ScaleIcon className="h-5 w-5" />
+                                    {isLoading ? 'Analyzing...' : (isParsing ? 'Waiting...' : 'Analyze Document')}
+                                 </button>
                             </div>
                         </div>
                     </div>
                 )}
 
                 {viewMode === 'generate' && (
-                    <div className="bg-[var(--bg-secondary)] p-6 rounded-xl border border-[var(--border-primary)] shadow-sm animate-fade-in-up">
+                    <div className="bg-white p-6 rounded-2xl border border-[var(--border-primary)] shadow-sm animate-fade-in-up">
                         <div className="space-y-4">
-                            <div>
-                                <label htmlFor="template-select" className="block text-sm font-medium text-[var(--text-primary)]">Use Organizational Template</label>
-                                <select id="template-select" value={selectedTemplateId} onChange={e => setSelectedTemplateId(e.target.value)} disabled={isLoading} className="mt-1 block w-full py-2 px-3 border border-[var(--border-primary)] bg-[var(--bg-primary)] rounded-md shadow-sm focus:outline-none focus:ring-brand-blue focus:border-brand-blue sm:text-sm">
+                            <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/60 p-4">
+                                <label htmlFor="template-select" className="block text-sm font-semibold text-[var(--text-headings)]">Use Organizational Template</label>
+                                <select id="template-select" value={selectedTemplateId} onChange={e => setSelectedTemplateId(e.target.value)} disabled={isLoading} className="mt-1.5 block w-full h-11 px-3 border border-[var(--border-primary)] bg-white rounded-xl focus:outline-none focus:ring-brand-blue focus:border-brand-blue text-sm">
                                     <option value="none">None - Generate from Scratch</option>
                                     {templates.map(template => (
                                         <option key={template.id} value={template.id}>{template.name}</option>
@@ -353,14 +382,14 @@ export const LegalReviewerView: React.FC = () => {
                                 </select>
                             </div>
 
-                            <div>
-                                <label htmlFor="contract-type" className="block text-sm font-medium text-[var(--text-primary)]">Contract Type</label>
+                            <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/60 p-4">
+                                <label htmlFor="contract-type" className="block text-sm font-semibold text-[var(--text-headings)]">Contract Type</label>
                                 <p className="text-xs text-[var(--text-primary)]/80 mb-1">
                                     {selectedTemplateId === 'none' 
                                         ? 'Select a standard contract type to generate from scratch.'
                                         : 'Classify your selected template to show relevant fields.'}
                                 </p>
-                                <select id="contract-type" value={contractType} onChange={e => setContractType(e.target.value)} disabled={isLoading} className="mt-1 block w-full py-2 px-3 border border-[var(--border-primary)] bg-[var(--bg-primary)] rounded-md shadow-sm focus:outline-none focus:ring-brand-blue focus:border-brand-blue sm:text-sm">
+                                <select id="contract-type" value={contractType} onChange={e => setContractType(e.target.value)} disabled={isLoading} className="mt-1.5 block w-full h-11 px-3 border border-[var(--border-primary)] bg-white rounded-xl focus:outline-none focus:ring-brand-blue focus:border-brand-blue text-sm">
                                     <option>Non-Disclosure Agreement (NDA)</option>
                                     <option>Consulting Agreement</option>
                                     <option>Service Agreement</option>
@@ -374,7 +403,7 @@ export const LegalReviewerView: React.FC = () => {
                             />
 
                             <button type="button" onClick={handleGenerate} disabled={isLoading}
-                                className="w-full flex items-center justify-center gap-2 px-6 py-3 font-semibold text-white bg-brand-blue rounded-md shadow-lg hover:bg-brand-blue-light focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all disabled:bg-slate-400 disabled:cursor-not-allowed">
+                                className="w-full flex items-center justify-center gap-2 h-11 px-6 font-semibold text-white bg-brand-blue rounded-xl shadow-sm hover:bg-brand-blue-light focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all disabled:bg-slate-400 disabled:cursor-not-allowed">
                                <DocumentTextIcon className="h-5 w-5" />
                                {isLoading ? 'Generating...' : 'Generate Contract'}
                             </button>
@@ -402,9 +431,9 @@ export const LegalReviewerView: React.FC = () => {
                 )}
                 {analysisResult && !isLoading && <LegalAnalysisDisplay result={analysisResult} perspective={perspective} documentText={documentText} />}
                 {generatedContract && !isLoading && (
-                    <div className="max-w-4xl mx-auto bg-[var(--bg-secondary)] p-6 rounded-xl border border-[var(--border-primary)] shadow-sm animate-fade-in-up">
+                    <div className="max-w-4xl mx-auto bg-white p-6 rounded-2xl border border-[var(--border-primary)] shadow-sm animate-fade-in-up">
                         <h3 className="text-2xl font-bold text-[var(--text-headings)] mb-4">{generatedContract.title}</h3>
-                        <div className="font-sans text-sm bg-[var(--bg-primary)] p-6 rounded-lg border border-[var(--border-primary)] max-h-[60vh] overflow-y-auto generated-content" 
+                        <div className="font-sans text-sm bg-[var(--bg-secondary)] p-6 rounded-xl border border-[var(--border-primary)] max-h-[60vh] overflow-y-auto generated-content" 
                             dangerouslySetInnerHTML={{ __html: generatedContract.content }}>
                         </div>
                         <div className="flex items-center gap-4 mt-6">

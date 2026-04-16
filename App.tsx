@@ -65,12 +65,33 @@ const DashboardIcon: React.FC = () => (
   </svg>
 );
 
+const navItems: Array<{ view: View; label: string; icon: React.ReactNode }> = [
+  { view: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
+  { view: 'scanner', label: 'Cookie Scanner', icon: <CheckCircleIcon className="h-5 w-5" /> },
+  { view: 'legal', label: 'Legal Review', icon: <ScaleIcon className="h-5 w-5" /> },
+  { view: 'vulnerability', label: 'Vulnerability Scanner', icon: <ShieldCheckIcon className="h-5 w-5" /> },
+];
+
+const MenuIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+  </svg>
+);
+
+const ChevronIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+  </svg>
+);
+
 const MainApp: React.FC = () => {
-  const [theme, setTheme] = useState('dark');
+  const [theme, setTheme] = useState('light');
   const [activeView, setActiveView] = useState<View>('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const savedTheme = localStorage.getItem('theme') || 'light';
     setTheme(savedTheme);
     document.documentElement.classList.toggle('dark', savedTheme === 'dark');
   }, []);
@@ -86,16 +107,17 @@ const MainApp: React.FC = () => {
     const isActive = activeView === view;
     return (
       <button
-        onClick={() => setActiveView(view)}
-        className={`flex items-center space-x-2 px-4 py-2.5 text-sm font-semibold rounded-md transition-colors duration-200 ${
+        onClick={() => { setActiveView(view); setIsSidebarOpen(false); }}
+        className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : ''} space-x-2 px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200 ${
           isActive
-            ? 'bg-brand-blue text-white shadow-sm'
-            : 'text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+            ? 'bg-white text-[var(--text-headings)] shadow-[0_8px_24px_rgba(15,23,42,0.08)]'
+            : 'text-[var(--text-primary)] hover:bg-white/60'
         }`}
         aria-current={isActive ? 'page' : undefined}
+        title={isSidebarCollapsed ? label : undefined}
       >
-        {icon}
-        <span>{label}</span>
+        <span className={isActive ? 'text-brand-blue' : ''}>{icon}</span>
+        {!isSidebarCollapsed && <span>{label}</span>}
       </button>
     );
   };
@@ -115,60 +137,103 @@ const MainApp: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] font-sans text-[var(--text-primary)] flex flex-col">
-      <header className="bg-[var(--bg-primary)]/80 backdrop-blur-sm sticky top-0 z-50 border-b border-[var(--border-primary)]">
-        <nav className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <CookieCareLogo className="h-8 w-auto text-brand-blue" />
-            <h1 className="text-xl font-bold text-[var(--text-headings)] tracking-tight">
-              Cookie Care
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
-            <UserMenu />
-          </div>
-        </nav>
-      </header>
+    <div className="min-h-screen bg-[var(--app-shell-bg)] font-sans text-[var(--text-primary)] p-2 sm:p-4">
+      <div className="relative mx-auto max-w-[1800px] rounded-[28px] border border-[var(--border-primary)] bg-white/60 shadow-[0_20px_70px_rgba(139,92,246,0.12)] backdrop-blur-sm overflow-hidden">
+        <div className="absolute left-0 top-0 h-full w-full max-w-[360px]" style={{ background: 'var(--sidebar-gradient)' }} />
+        <div className="relative flex min-h-[calc(100vh-1rem)] sm:min-h-[calc(100vh-2rem)]">
+          {isSidebarOpen && (
+            <div
+              className="fixed inset-0 bg-slate-950/30 backdrop-blur-[1px] z-30 lg:hidden"
+              onClick={() => setIsSidebarOpen(false)}
+            />
+          )}
 
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 flex-grow">
-        {activeView === 'settings' ? (
-          <div className="max-w-4xl mx-auto">
-            <SettingsView onBack={() => setActiveView('dashboard')} />
-          </div>
-        ) : (
-          <>
-            <div className="max-w-4xl mx-auto text-center">
-              <h2 className="text-3xl sm:text-5xl font-extrabold text-[var(--text-headings)] leading-tight">
-                Holistic Compliance Analysis Engine
-              </h2>
-              <p className="mt-4 text-lg text-[var(--text-primary)] max-w-2xl mx-auto">
-                {descriptions[activeView]}
-              </p>
-            </div>
+          <aside className={`fixed inset-y-0 left-0 z-40 w-72 ${isSidebarCollapsed ? 'lg:w-24' : 'lg:w-72'} p-4 lg:p-5 transition-all duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:static lg:translate-x-0`}>
+            <div className="h-full flex flex-col rounded-3xl bg-white/45 border border-white/60 shadow-[0_10px_30px_rgba(124,58,237,0.10)] p-4">
+              <div className="flex items-center justify-between gap-3 px-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <CookieCareLogo className="h-8 w-auto text-brand-blue" />
+                  {!isSidebarCollapsed && <h1 className="text-lg font-bold text-[var(--text-headings)] tracking-tight">Cookie Care</h1>}
+                </div>
+                <button
+                  onClick={() => setIsSidebarCollapsed(v => !v)}
+                  className="hidden lg:inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/70 bg-white/70 text-[var(--text-primary)] hover:text-[var(--text-headings)]"
+                  aria-label="Collapse sidebar"
+                >
+                  <ChevronIcon className={`h-4 w-4 transition-transform ${isSidebarCollapsed ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
 
-            <div className="max-w-4xl mx-auto mt-10">
-              <div className="flex justify-center items-center p-1.5 bg-[var(--bg-tertiary)] rounded-lg space-x-2 flex-wrap gap-y-1">
-                <NavTab view="dashboard" label="Dashboard" icon={<DashboardIcon />} />
-                <NavTab view="scanner" label="Cookie Scanner" icon={<CheckCircleIcon className="h-5 w-5" />} />
-                <NavTab view="legal" label="Legal Review" icon={<ScaleIcon className="h-5 w-5" />} />
-                <NavTab view="vulnerability" label="Vulnerability Scanner" icon={<ShieldCheckIcon className="h-5 w-5" />} />
+              <div className="mt-6 space-y-1.5">
+                {navItems.map(item => (
+                  <NavTab key={item.view} view={item.view} label={item.label} icon={item.icon} />
+                ))}
+                <NavTab view="settings" label="Settings" icon={<SunIcon className="h-5 w-5" />} />
+              </div>
+
+              <div className="mt-auto space-y-3">
+                <div className={`rounded-2xl border border-white/70 bg-white/70 p-3 ${isSidebarCollapsed ? 'text-center' : ''}`}>
+                  <p className={`text-xs font-semibold uppercase tracking-widest text-[var(--text-primary)]/70 ${isSidebarCollapsed ? 'hidden' : ''}`}>Workspace</p>
+                  {!isSidebarCollapsed && <p className="mt-1 text-sm text-[var(--text-headings)]">v1.0 Enterprise</p>}
+                  <div className="mt-2 flex justify-center lg:justify-start">
+                    <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+                  </div>
+                </div>
+                <div className={`${isSidebarCollapsed ? 'flex justify-center' : ''}`}>
+                  <UserMenu />
+                </div>
               </div>
             </div>
+          </aside>
 
-            <div className="mt-8 max-w-6xl mx-auto">
-              {activeView === 'dashboard' && <DashboardView onNavigate={handleNavigate} />}
-              {activeView === 'scanner' && <CookieScannerView />}
-              {activeView === 'legal' && <LegalReviewerView />}
-              {activeView === 'vulnerability' && <VulnerabilityScannerView />}
+          <div className={`flex-1 min-w-0 p-3 sm:p-6 ${isSidebarCollapsed ? 'lg:pl-4' : 'lg:pl-2'}`}>
+            <div className="bg-white rounded-3xl border border-[var(--border-primary)] shadow-[0_8px_40px_rgba(15,23,42,0.06)] h-full p-4 sm:p-6 lg:p-8">
+              <header className="flex items-start justify-between gap-4 pb-5 border-b border-[var(--border-primary)]">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-[var(--text-primary)]">
+                    <span>Workspace</span>
+                    <span className="opacity-50">/</span>
+                    <span className="font-semibold text-[var(--text-headings)] capitalize">{activeView}</span>
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text-headings)]">Holistic Compliance Analysis Engine</h2>
+                  <p className="text-sm sm:text-base text-[var(--text-primary)] max-w-3xl">{descriptions[activeView]}</p>
+                </div>
+                <button
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="inline-flex lg:hidden h-10 w-10 items-center justify-center rounded-xl border border-[var(--border-primary)] text-[var(--text-primary)] hover:text-[var(--text-headings)]"
+                  aria-label="Open navigation"
+                >
+                  <MenuIcon className="h-5 w-5" />
+                </button>
+              </header>
+
+              {activeView !== 'settings' && (
+                <div className="mt-6">
+                  <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-2">
+                    {navItems.map(item => (
+                      <button
+                        key={`top-${item.view}`}
+                        onClick={() => setActiveView(item.view)}
+                        className={`px-4 py-2.5 text-sm font-semibold rounded-xl transition ${activeView === item.view ? 'bg-white shadow-sm text-[var(--text-headings)]' : 'text-[var(--text-primary)] hover:bg-white/80'}`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <main className="mt-6">
+                {activeView === 'settings' && <SettingsView onBack={() => setActiveView('dashboard')} />}
+                {activeView === 'dashboard' && <DashboardView onNavigate={handleNavigate} />}
+                {activeView === 'scanner' && <CookieScannerView />}
+                {activeView === 'legal' && <LegalReviewerView />}
+                {activeView === 'vulnerability' && <VulnerabilityScannerView />}
+              </main>
             </div>
-          </>
-        )}
-      </main>
-
-      <footer className="text-center py-6 text-sm text-[var(--text-primary)]/80">
-        <p>&copy; {new Date().getFullYear()} Cookie Care. All rights reserved.</p>
-      </footer>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

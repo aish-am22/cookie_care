@@ -80,8 +80,8 @@ export const CookieScannerView: React.FC = () => {
           onScan={handleScan}
           isLoading={isLoading}
         />
-        <div className="bg-[var(--bg-secondary)] p-4 rounded-xl border border-[var(--border-primary)] shadow-sm">
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-3">Scan Depth</label>
+        <div className="bg-white p-4 rounded-2xl border border-[var(--border-primary)] shadow-sm">
+            <label className="block text-sm font-semibold text-[var(--text-headings)] mb-3">Scan Depth</label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {(['lite', 'medium', 'deep', 'enterprise'] as ScanDepth[]).map(depth => {
                     const depthConfig = {
@@ -95,10 +95,10 @@ export const CookieScannerView: React.FC = () => {
                             key={depth}
                             onClick={() => setScanDepth(depth)}
                             disabled={isLoading}
-                            className={`flex-1 px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-200 text-center disabled:cursor-not-allowed ${
+                            className={`flex-1 px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors duration-200 text-center disabled:cursor-not-allowed ${
                                 scanDepth === depth
                                     ? 'bg-brand-blue text-white shadow-sm'
-                                    : 'text-[var(--text-primary)] bg-[var(--bg-tertiary)] hover:bg-[var(--border-primary)] disabled:text-slate-500'
+                                    : 'text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border-primary)] hover:bg-[var(--bg-tertiary)] disabled:text-slate-500'
                             }`}
                             aria-pressed={scanDepth === depth}
                         >
