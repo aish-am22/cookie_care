@@ -65,6 +65,13 @@ const DashboardIcon: React.FC = () => (
   </svg>
 );
 
+const navItems: Array<{ view: View; label: string; icon: React.ReactNode }> = [
+  { view: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
+  { view: 'scanner', label: 'Cookie Scanner', icon: <CheckCircleIcon className="h-5 w-5" /> },
+  { view: 'legal', label: 'Legal Review', icon: <ScaleIcon className="h-5 w-5" /> },
+  { view: 'vulnerability', label: 'Vulnerability Scanner', icon: <ShieldCheckIcon className="h-5 w-5" /> },
+];
+
 const MenuIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -132,7 +139,7 @@ const MainApp: React.FC = () => {
   return (
     <div className="min-h-screen bg-[var(--app-shell-bg)] font-sans text-[var(--text-primary)] p-2 sm:p-4">
       <div className="relative mx-auto max-w-[1800px] rounded-[28px] border border-[var(--border-primary)] bg-white/60 shadow-[0_20px_70px_rgba(139,92,246,0.12)] backdrop-blur-sm overflow-hidden">
-        <div className="absolute left-0 top-0 h-full w-full max-w-[360px] bg-gradient-to-b from-[#f8d8ff] via-[#f8e7ff] to-[#f2ecff]" />
+        <div className="absolute left-0 top-0 h-full w-full max-w-[360px]" style={{ background: 'var(--sidebar-gradient)' }} />
         <div className="relative flex min-h-[calc(100vh-1rem)] sm:min-h-[calc(100vh-2rem)]">
           {isSidebarOpen && (
             <div
@@ -158,10 +165,9 @@ const MainApp: React.FC = () => {
               </div>
 
               <div className="mt-6 space-y-1.5">
-                <NavTab view="dashboard" label="Dashboard" icon={<DashboardIcon />} />
-                <NavTab view="scanner" label="Cookie Scanner" icon={<CheckCircleIcon className="h-5 w-5" />} />
-                <NavTab view="legal" label="Legal Review" icon={<ScaleIcon className="h-5 w-5" />} />
-                <NavTab view="vulnerability" label="Vulnerability Scanner" icon={<ShieldCheckIcon className="h-5 w-5" />} />
+                {navItems.map(item => (
+                  <NavTab key={item.view} view={item.view} label={item.label} icon={item.icon} />
+                ))}
                 <NavTab view="settings" label="Settings" icon={<SunIcon className="h-5 w-5" />} />
               </div>
 
@@ -204,10 +210,15 @@ const MainApp: React.FC = () => {
               {activeView !== 'settings' && (
                 <div className="mt-6">
                   <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-2">
-                    <button onClick={() => setActiveView('dashboard')} className={`px-4 py-2.5 text-sm font-semibold rounded-xl transition ${activeView === 'dashboard' ? 'bg-white shadow-sm text-[var(--text-headings)]' : 'text-[var(--text-primary)] hover:bg-white/80'}`}>Dashboard</button>
-                    <button onClick={() => setActiveView('scanner')} className={`px-4 py-2.5 text-sm font-semibold rounded-xl transition ${activeView === 'scanner' ? 'bg-white shadow-sm text-[var(--text-headings)]' : 'text-[var(--text-primary)] hover:bg-white/80'}`}>Cookie Scanner</button>
-                    <button onClick={() => setActiveView('legal')} className={`px-4 py-2.5 text-sm font-semibold rounded-xl transition ${activeView === 'legal' ? 'bg-white shadow-sm text-[var(--text-headings)]' : 'text-[var(--text-primary)] hover:bg-white/80'}`}>Legal Review</button>
-                    <button onClick={() => setActiveView('vulnerability')} className={`px-4 py-2.5 text-sm font-semibold rounded-xl transition ${activeView === 'vulnerability' ? 'bg-white shadow-sm text-[var(--text-headings)]' : 'text-[var(--text-primary)] hover:bg-white/80'}`}>Vulnerability Scanner</button>
+                    {navItems.map(item => (
+                      <button
+                        key={`top-${item.view}`}
+                        onClick={() => setActiveView(item.view)}
+                        className={`px-4 py-2.5 text-sm font-semibold rounded-xl transition ${activeView === item.view ? 'bg-white shadow-sm text-[var(--text-headings)]' : 'text-[var(--text-primary)] hover:bg-white/80'}`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
