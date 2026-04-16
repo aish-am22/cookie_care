@@ -42,7 +42,7 @@ const UserMenu: React.FC = () => {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-1 w-52 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl shadow-lg py-1 z-50">
+        <div className="absolute right-0 bottom-full mb-2 w-52 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl shadow-lg py-1 z-50">
           <div className="px-4 py-2 border-b border-[var(--border-primary)]">
             <p className="text-xs font-semibold text-[var(--text-headings)] truncate">{user?.fullName ?? 'Account'}</p>
             <p className="text-xs text-[var(--text-primary)] truncate">{user?.email}</p>
@@ -103,8 +103,8 @@ const MainApp: React.FC = () => {
         onClick={() => { setActiveView(view); setIsSidebarOpen(false); }}
         className={`flex w-full items-center space-x-2.5 px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200 ${
           isActive
-            ? 'bg-white text-[var(--text-headings)] shadow-[0_10px_30px_rgba(15,23,42,0.10)]'
-            : 'text-[var(--text-primary)] hover:bg-white/65'
+            ? 'bg-white text-[var(--text-headings)] shadow-[0_10px_30px_rgba(15,23,42,0.10)] rounded-xl dark:bg-[var(--bg-secondary)]'
+            : 'text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
         }`}
         aria-current={isActive ? 'page' : undefined}
       >
@@ -144,10 +144,10 @@ const MainApp: React.FC = () => {
   };
 
   const SidebarContent = () => (
-    <div className="h-full flex flex-col rounded-[28px] bg-white/55 border border-white/70 shadow-[0_18px_45px_rgba(124,58,237,0.12)] p-5">
+    <div className="h-full flex flex-col rounded-[28px] bg-white/55 backdrop-blur-md p-5 border border-white/60 dark:bg-slate-900/90 dark:border-slate-700">
       <div className="flex items-center gap-3 px-1">
         <CookieCareLogo className="h-9 w-auto text-brand-blue" />
-        <h1 className="text-lg font-bold text-[var(--text-headings)] tracking-tight">Cookie Care</h1>
+        <h1 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">Cookie Care</h1>
       </div>
 
       <div className="mt-7 space-y-1.5">
@@ -158,12 +158,9 @@ const MainApp: React.FC = () => {
       </div>
 
       <div className="mt-auto space-y-3">
-        <div className="rounded-2xl border border-white/80 bg-white/80 p-3">
-          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-primary)]/75">Workspace</p>
-          <p className="mt-1 text-sm text-[var(--text-headings)]">v1.0 Enterprise</p>
-          <div className="mt-2 flex justify-start">
-            <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
-          </div>
+        <div className="flex items-center justify-between rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-3 py-2">
+          <span className="text-xs font-semibold uppercase tracking-widest text-[var(--text-primary)]">Theme</span>
+          <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
         </div>
         <UserMenu />
       </div>
@@ -172,7 +169,7 @@ const MainApp: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[var(--app-shell-bg)] font-sans text-[var(--text-primary)]">
-      <div className="absolute inset-y-0 left-0 hidden w-[320px] lg:block" style={{ background: 'var(--sidebar-gradient)' }} />
+      <div className="fixed inset-y-0 left-0 hidden w-[320px] -z-10 lg:block" style={{ background: 'var(--sidebar-gradient)' }} />
 
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-slate-950/35 backdrop-blur-[1px] z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
@@ -188,14 +185,9 @@ const MainApp: React.FC = () => {
 
       <div className="relative lg:pl-[308px]">
         <div className="p-3 sm:p-4 lg:p-5">
-          <div className="min-h-[calc(100vh-1.5rem)] lg:min-h-[calc(100vh-2.5rem)] bg-white rounded-[28px] border border-[var(--border-primary)] shadow-[0_22px_65px_rgba(15,23,42,0.08)] p-4 sm:p-6 lg:p-8">
+          <div className="min-h-[calc(100vh-1.5rem)] lg:min-h-[calc(100vh-2.5rem)] bg-[var(--bg-primary)] rounded-[28px] border border-[var(--border-primary)] shadow-[0_22px_65px_rgba(15,23,42,0.08)] p-4 sm:p-6 lg:p-8">
             <header className="flex items-start justify-between gap-4 pb-5 border-b border-[var(--border-primary)]">
               <div className="space-y-1">
-                <div className="flex items-center gap-2 text-xs sm:text-sm text-[var(--text-primary)]">
-                  <span>Workspace</span>
-                  <span className="opacity-50">/</span>
-                  <span className="font-semibold text-[var(--text-headings)]">{pageMeta[activeView].title}</span>
-                </div>
                 <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text-headings)]">{pageMeta[activeView].title}</h2>
                 <p className="text-sm sm:text-base text-[var(--text-primary)] max-w-3xl">{pageMeta[activeView].description}</p>
               </div>
@@ -209,7 +201,7 @@ const MainApp: React.FC = () => {
             </header>
 
             <main className="mt-6">
-              {activeView === 'settings' && <SettingsView onBack={() => setActiveView('dashboard')} />}
+              {activeView === 'settings' && <SettingsView />}
               {activeView === 'dashboard' && <DashboardView onNavigate={handleNavigate} />}
               {activeView === 'scanner' && <CookieScannerView />}
               {activeView === 'legal' && <LegalReviewerView />}

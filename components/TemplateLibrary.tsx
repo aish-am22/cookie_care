@@ -65,7 +65,7 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ templates, onT
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="md:col-span-1">
-                <div className="bg-white p-6 rounded-2xl border border-[var(--border-primary)] shadow-sm">
+                <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl border border-[var(--border-primary)] shadow-sm">
                     <h3 className="text-lg font-bold text-[var(--text-headings)] mb-1">Add New Template</h3>
                     <p className="text-xs text-[var(--text-primary)] mb-4">Upload approved legal templates to reuse during generation.</p>
                     <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".docx,.txt" className="hidden" disabled={isUploading}/>
@@ -86,7 +86,7 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ templates, onT
                 </div>
             </div>
             <div className="md:col-span-2">
-                 <div className="bg-white p-6 rounded-2xl border border-[var(--border-primary)] shadow-sm">
+                 <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl border border-[var(--border-primary)] shadow-sm">
                     <h3 className="text-lg font-bold text-[var(--text-headings)] mb-4">Available Templates ({templates.length})</h3>
                     <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
                         {templates.length > 0 ? templates.map(template => (

@@ -16,7 +16,7 @@ export const ScanningProgress: React.FC<ScanningProgressProps> = ({ logs }) => {
 
     return (
         <div className="max-w-4xl mx-auto animate-fade-in-up" aria-live="polite">
-            <div className="bg-white rounded-2xl shadow-sm border border-[var(--border-primary)] font-mono text-sm text-[var(--text-primary)]">
+            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-primary)] font-mono text-sm text-[var(--text-primary)]">
                 <div className="p-3 border-b border-[var(--border-primary)] flex items-center gap-2">
                     <span className="h-3 w-3 rounded-full bg-red-300"></span>
                     <span className="h-3 w-3 rounded-full bg-amber-300"></span>

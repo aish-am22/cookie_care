@@ -16,7 +16,7 @@ export const URLInputForm: React.FC<URLInputFormProps> = ({ url, setUrl, onScan,
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full bg-white p-6 rounded-2xl border border-[var(--border-primary)] shadow-sm">
+    <form onSubmit={handleSubmit} className="w-full bg-[var(--bg-secondary)] p-6 rounded-2xl border border-[var(--border-primary)] shadow-sm">
       <label htmlFor="url-input" className="block text-sm font-semibold text-[var(--text-headings)] mb-1">
         Website URL
       </label>

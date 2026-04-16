@@ -9,6 +9,10 @@ html {
   scroll-behavior: smooth;
 }
 
+body {
+  background: var(--app-shell-bg);
+}
+
 @supports (font-variation-settings: normal) {
   html {
     font-family: 'Inter var', sans-serif;
@@ -30,7 +34,7 @@ html {
 
 html.dark {
   --app-shell-bg: linear-gradient(180deg, hsl(255, 36%, 11%) 0%, hsl(233, 38%, 12%) 100%);
-  --sidebar-gradient: linear-gradient(180deg, hsla(285, 42%, 25%, 0.55) 0%, hsla(252, 42%, 22%, 0.45) 100%);
+  --sidebar-gradient: hsl(222, 47%, 11%);
   --bg-primary: hsl(222, 20%, 10%);
   --bg-secondary: hsl(228, 24%, 14%);
   --bg-tertiary: hsl(228, 24%, 18%);

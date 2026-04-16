@@ -414,11 +414,7 @@ const SessionsSection: React.FC = () => {
 
 type SettingsTab = 'profile' | 'security' | 'sessions' | 'email';
 
-interface SettingsViewProps {
-  onBack: () => void;
-}
-
-export const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
+export const SettingsView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
 
   const tabs: { id: SettingsTab; label: string }[] = [
@@ -430,22 +426,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
 
   return (
     <div className="space-y-6 animate-fade-in-up">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onBack}
-          className="p-1.5 rounded-lg text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <div>
-          <h2 className="text-2xl font-bold text-[var(--text-headings)]">Settings</h2>
-          <p className="text-sm text-[var(--text-primary)]">Manage your account and security preferences</p>
-        </div>
-      </div>
-
       <div className="flex flex-col sm:flex-row gap-6">
         {/* Sidebar tabs */}
         <nav className="sm:w-44 flex sm:flex-col gap-1 flex-shrink-0 overflow-x-auto">

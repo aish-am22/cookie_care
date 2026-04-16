@@ -80,7 +80,7 @@ export const CookieScannerView: React.FC = () => {
           onScan={handleScan}
           isLoading={isLoading}
         />
-        <div className="bg-white p-4 rounded-2xl border border-[var(--border-primary)] shadow-sm">
+        <div className="bg-[var(--bg-secondary)] p-4 rounded-2xl border border-[var(--border-primary)] shadow-sm">
             <label className="block text-sm font-semibold text-[var(--text-headings)] mb-3">Scan Depth</label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {(['lite', 'medium', 'deep', 'enterprise'] as ScanDepth[]).map(depth => {
