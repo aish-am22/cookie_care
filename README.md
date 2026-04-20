@@ -73,9 +73,9 @@ Frontend API wrappers in `api/*.ts` are typed client adapters — they must matc
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/api/contracts/upload` | Upload a contract document; returns `{ data: ContractDocument }` with `status: UPLOADED` |
-| `POST` | `/api/contracts/:id/ingest` | Start ingestion pipeline; transitions `UPLOADED → INGESTING → READY` |
+| `POST` | `/api/contracts/:id/ingest` | Start RAG ingestion pipeline; transitions `UPLOADED → INGESTING → READY` |
 | `GET`  | `/api/contracts/:id/status` | Poll the contract's ingest lifecycle status |
-| `POST` | `/api/ask` | Ask a question about a `READY` contract; returns `{ data: { answer } }` |
+| `POST` | `/api/ask` | Ask a question about a `READY` contract via RAG; returns answer plus grounding metadata |
 
 All four endpoints require a valid `Authorization: Bearer <accessToken>` header.
 
@@ -176,6 +176,12 @@ RAG_EMBEDDING_PROVIDER=stub      # "stub" (no key) | "gemini" (requires API key)
 RAG_VECTOR_STORE=memory          # "memory" (no DB) | "prisma" (Postgres)
 RAG_GENERATION_MODEL=gemini-2.5-flash
 RAG_STUB_GENERATION=false        # Set "true" to skip real LLM even when key is present
+RAG_EMBED_CONCURRENCY=4          # Max concurrent embedding requests
+RAG_MODEL_TIMEOUT_MS=15000       # Timeout for embedding/generation model calls
+RAG_EMBED_RETRIES=2              # Retries for embedding calls
+RAG_GENERATION_RETRIES=1         # Retries for generation calls
+RAG_MAX_CONTEXT_TOKENS=1800      # Prompt context token budget (approx)
+RAG_MAX_CONTEXT_CHUNKS=8         # Max retrieved chunks used in prompt
 ```
 
 #### 2. Start the backend
@@ -272,6 +278,7 @@ curl -X POST http://localhost:3001/api/ai/ask \
       }
     ],
     "confidence": "HIGH",
+    "grounded": true,
     "needsHumanReview": false,
     "traceId": "550e8400-e29b-41d4-a716-446655440000"
   }
@@ -288,6 +295,7 @@ When no relevant context exists:
     "answer": "INSUFFICIENT_EVIDENCE: No documents have been indexed for this organisation. Please ingest documents first.",
     "citations": [],
     "confidence": "INSUFFICIENT",
+    "grounded": false,
     "needsHumanReview": true,
     "traceId": "..."
   }
@@ -302,7 +310,7 @@ When no relevant context exists:
 |--------|------|------|-------------|
 | `POST` | `/api/ai/ingest` | Bearer | Ingest a document (parse → chunk → embed → index) |
 | `POST` | `/api/ai/retrieve` | Bearer | Debug: return raw ranked chunks for a query |
-| `POST` | `/api/ai/ask` | Bearer | Ask a question; returns answer + citations + confidence |
+| `POST` | `/api/ai/ask` | Bearer | Ask a question; returns answer + citations + confidence + grounding flags |
 
 All endpoints enforce `orgId`-based tenant isolation (currently scoped to the authenticated user).
 
@@ -315,5 +323,49 @@ npm test
 
 Tests cover:
 - **Chunker**: basic invariants, size limits, section label preservation, hash correctness
-- **Retrieval tenant isolation**: cross-org data never leaks, documentId filter, topK limit
-- **Ask schema**: response contract, insufficient-evidence path, citation shape, traceId uniqueness
+- **Retrieval tenant isolation**: cross-org data never leaks, document/docType filters, topK limit
+- **Ask schema**: response contract, insufficient-evidence path, grounding/citation fallback, traceId uniqueness
+- **Ingestion lifecycle**: idempotent content hash skip + version activation behavior
+
+### RAG Evaluation Harness
+
+Synthetic privacy/contracts dataset:
+
+`backend/eval/datasets/synthetic_privacy_contracts.json`
+
+Run eval locally:
+
+```bash
+cd backend
+npm run eval:rag
+```
+
+Report output includes:
+- Retrieval metric: `Recall@k`
+- Answer checks: citation presence rate + grounding proxy rate
+- Latency summary: `p50` / `p95` (offline eval runtime)
+
+### Deploy / Operator Steps (manual)
+
+1. Apply Prisma migrations:
+```bash
+cd backend
+npx prisma migrate deploy
+```
+2. Ensure pgvector extension exists in Postgres:
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+3. Regenerate Prisma client after schema/migration updates:
+```bash
+cd backend
+npx prisma generate
+```
+4. Re-index existing contracts/documents (required after deploying ingestion/retrieval fixes):
+   - Re-run contract ingest endpoint (`POST /api/contracts/:id/ingest`) for existing contracts.
+   - Or re-ingest documents through `POST /api/ai/ingest`.
+5. Required environment for production RAG:
+   - `DATABASE_URL`
+   - `GEMINI_API_KEY` (or `API_KEY`)
+   - `RAG_EMBEDDING_PROVIDER=gemini`
+   - `RAG_VECTOR_STORE=prisma`

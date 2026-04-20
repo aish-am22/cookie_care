@@ -9,6 +9,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { InMemoryVectorStore } from '../ingest/vectorStore.js';
 import { StubEmbeddingProvider } from '../ingest/embedder.js';
+import { clampTopK, MAX_TOP_K, MIN_TOP_K } from '../retrieval/retrievalService.js';
 import type { VectorStoreEntry, EmbeddedChunk } from '../ingest/types.js';
 
 // ---------------------------------------------------------------------------
@@ -33,14 +34,17 @@ function makeEntry(
   documentId: string,
   chunkIndex: number,
   content: string,
+  docType: 'CONTRACT' | 'POLICY' | 'OTHER' = 'OTHER',
 ): VectorStoreEntry {
   return {
     id,
     orgId,
     documentId,
     documentTitle: `Doc ${documentId}`,
+    docType,
     versionId: `v-${documentId}`,
     version: 1,
+    isActiveVersion: true,
     chunk: makeChunk(chunkIndex, content),
   };
 }
@@ -156,5 +160,40 @@ describe('InMemoryVectorStore – tenant isolation', () => {
     expect(await store.count('org-A')).toBe(2);
     expect(await store.count('org-B')).toBe(1);
     expect(await store.count('org-C')).toBe(0);
+  });
+
+  it('applies docType and documentIds filters', async () => {
+    await store.upsert([
+      makeEntry('c1', 'org-A', 'doc-1', 0, 'Clause one', 'CONTRACT'),
+      makeEntry('c2', 'org-A', 'doc-2', 0, 'Clause two', 'POLICY'),
+      makeEntry('c3', 'org-A', 'doc-3', 0, 'Clause three', 'CONTRACT'),
+    ]);
+
+    const embedder = new StubEmbeddingProvider(64);
+    const qVec = await embedder.embed('clause');
+    const results = await store.query(qVec, {
+      orgId: 'org-A',
+      docType: 'CONTRACT',
+      documentIds: ['doc-3'],
+    });
+
+    expect(results.length).toBe(1);
+    expect(results[0]!.documentId).toBe('doc-3');
+  });
+
+  it('applies similarity threshold filtering', async () => {
+    await store.upsert([makeEntry('c1', 'org-A', 'doc-1', 0, 'Alpha specific text')]);
+
+    const embedder = new StubEmbeddingProvider(64);
+    const qVec = await embedder.embed('completely unrelated query');
+    const results = await store.query(qVec, { orgId: 'org-A', threshold: 0.95 });
+
+    expect(results).toEqual([]);
+  });
+
+  it('clamps topK to server-safe bounds', () => {
+    expect(clampTopK(undefined)).toBeGreaterThanOrEqual(MIN_TOP_K);
+    expect(clampTopK(0)).toBe(MIN_TOP_K);
+    expect(clampTopK(999)).toBe(MAX_TOP_K);
   });
 });

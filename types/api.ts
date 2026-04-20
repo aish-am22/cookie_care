@@ -63,9 +63,25 @@ export interface UploadContractRequest {
 export interface AskRequest {
   contractId: string;
   question: string;
+  topK?: number;
 }
 
 /** Response data for POST /api/ask */
 export interface AskResponse {
   answer: string;
+  citations?: Array<{
+    documentId: string;
+    documentTitle: string;
+    versionId: string;
+    version: number;
+    sectionLabel?: string;
+    pageStart?: number;
+    pageEnd?: number;
+    snippet: string;
+    score: number;
+  }>;
+  confidence?: 'HIGH' | 'MEDIUM' | 'LOW' | 'INSUFFICIENT';
+  grounded?: boolean;
+  needsHumanReview?: boolean;
+  traceId?: string;
 }

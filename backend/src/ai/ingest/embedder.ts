@@ -12,6 +12,55 @@
 import { createHash } from 'crypto';
 import type { EmbeddingProvider } from './types.js';
 
+const DEFAULT_TIMEOUT_MS = Number(process.env.RAG_MODEL_TIMEOUT_MS ?? 15_000);
+const DEFAULT_RETRIES = Number(process.env.RAG_EMBED_RETRIES ?? 2);
+const DEFAULT_CONCURRENCY = Number(process.env.RAG_EMBED_CONCURRENCY ?? 4);
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+  return Promise.race([
+    promise,
+    timeout,
+  ]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
+async function withRetry<T>(fn: () => Promise<T>, retries: number): Promise<T> {
+  let lastError: unknown;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      if (i === retries) throw err;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('Embedding call failed');
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let idx = 0;
+  const workers = Array.from({ length: Math.max(1, concurrency) }, async () => {
+    while (idx < items.length) {
+      const current = idx++;
+      results[current] = await fn(items[current]!, current);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
 // ---------------------------------------------------------------------------
 // StubEmbeddingProvider
 // ---------------------------------------------------------------------------
@@ -98,13 +147,22 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
     const { GoogleGenAI } = await import('@google/genai');
     const genai = new GoogleGenAI({ apiKey: this._apiKey });
 
-    const results = await Promise.all(
-      texts.map((text) =>
-        genai.models.embedContent({
-          model: this._model,
-          contents: text,
-        }),
-      ),
+    const results = await mapWithConcurrency(
+      texts,
+      DEFAULT_CONCURRENCY,
+      (text) =>
+        withRetry(
+          () =>
+            withTimeout(
+              genai.models.embedContent({
+                model: this._model,
+                contents: text,
+              }),
+              DEFAULT_TIMEOUT_MS,
+              'Gemini embedding',
+            ),
+          DEFAULT_RETRIES,
+        ),
     );
 
     return results.map((r) => {

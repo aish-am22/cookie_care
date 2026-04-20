@@ -10,6 +10,24 @@
 
 import type { RetrievedChunk } from '../ingest/types.js';
 
+const DEFAULT_MAX_CONTEXT_TOKENS = Number(process.env.RAG_MAX_CONTEXT_TOKENS ?? 1800);
+const DEFAULT_MAX_CONTEXT_CHUNKS = Number(process.env.RAG_MAX_CONTEXT_CHUNKS ?? 8);
+
+export function selectChunksForPrompt(chunks: RetrievedChunk[]): RetrievedChunk[] {
+  const selected: RetrievedChunk[] = [];
+  let usedTokens = 0;
+
+  for (const chunk of chunks) {
+    if (selected.length >= DEFAULT_MAX_CONTEXT_CHUNKS) break;
+    const tokenCount = Math.max(1, chunk.tokenCount || Math.ceil(chunk.content.length / 4));
+    if (usedTokens + tokenCount > DEFAULT_MAX_CONTEXT_TOKENS) continue;
+    selected.push(chunk);
+    usedTokens += tokenCount;
+  }
+
+  return selected;
+}
+
 /**
  * Build the system instruction for the legal Q&A prompt.
  */

@@ -25,8 +25,13 @@
 import { randomUUID } from 'crypto';
 import logger from '../../infra/logger.js';
 import { db } from '../../infra/db.js';
-import { retrieve, hasIndexedContent } from '../retrieval/retrievalService.js';
-import { systemInstruction, buildContextPrompt, INSUFFICIENT_EVIDENCE_MARKER } from './prompts.js';
+import { retrieve, hasIndexedContent, clampTopK } from '../retrieval/retrievalService.js';
+import {
+  systemInstruction,
+  buildContextPrompt,
+  INSUFFICIENT_EVIDENCE_MARKER,
+  selectChunksForPrompt,
+} from './prompts.js';
 import type {
   AskQuery,
   AskResponse,
@@ -34,6 +39,10 @@ import type {
   ConfidenceLevel,
   RetrievedChunk,
 } from '../ingest/types.js';
+
+const SOURCE_MARKER_REGEX = /\[SOURCE\s+(\d+)\]/gi;
+const GENERATION_TIMEOUT_MS = Number(process.env.RAG_MODEL_TIMEOUT_MS ?? 15_000);
+const GENERATION_RETRIES = Number(process.env.RAG_GENERATION_RETRIES ?? 1);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -61,6 +70,40 @@ function deriveConfidence(chunks: RetrievedChunk[], answer: string): ConfidenceL
   if (topScore >= 0.75) return 'HIGH';
   if (topScore >= 0.45) return 'MEDIUM';
   return 'LOW';
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+    }),
+  ]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
+async function withRetry<T>(fn: () => Promise<T>, retries: number): Promise<T> {
+  let lastError: unknown;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      if (i === retries) throw err;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('LLM call failed');
+}
+
+function hasValidCitations(answer: string, availableSources: number): boolean {
+  const matches = [...answer.matchAll(SOURCE_MARKER_REGEX)];
+  if (matches.length === 0) return false;
+  return matches.every((m) => {
+    const idx = Number(m[1]);
+    return Number.isInteger(idx) && idx >= 1 && idx <= availableSources;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -93,10 +136,18 @@ async function geminiGenerate(question: string, chunks: RetrievedChunk[]): Promi
 
   const prompt = `${systemInstruction()}\n\n${buildContextPrompt(question, chunks)}`;
 
-  const result = await genai.models.generateContent({
-    model: modelName,
-    contents: prompt,
-  });
+  const result = await withRetry(
+    () =>
+      withTimeout(
+        genai.models.generateContent({
+          model: modelName,
+          contents: prompt,
+        }),
+        GENERATION_TIMEOUT_MS,
+        'Gemini generation',
+      ),
+    GENERATION_RETRIES,
+  );
 
   return result.text ?? '';
 }
@@ -123,6 +174,7 @@ export async function ask(query: AskQuery): Promise<AskResponse> {
       answer: `${INSUFFICIENT_EVIDENCE_MARKER} No documents have been indexed for this organisation. Please ingest documents first.`,
       citations: [],
       confidence: 'INSUFFICIENT',
+      grounded: false,
       needsHumanReview: true,
       traceId,
     };
@@ -138,8 +190,9 @@ export async function ask(query: AskQuery): Promise<AskResponse> {
     question,
     documentId: query.documentId,
     docType: query.docType,
-    topK: query.topK ?? 8,
+    topK: clampTopK(query.topK),
   });
+  const contextChunks = selectChunksForPrompt(chunks);
 
   // -------------------------------------------------------------------------
   // Generate answer
@@ -152,18 +205,18 @@ export async function ask(query: AskQuery): Promise<AskResponse> {
     process.env.RAG_STUB_GENERATION === 'true' ||
     (!process.env.GEMINI_API_KEY && !process.env.API_KEY);
 
-  if (useStub || chunks.length === 0) {
-    answer = stubGenerate(question, chunks);
+  if (useStub || contextChunks.length === 0) {
+    answer = stubGenerate(question, contextChunks);
     modelProvider = 'stub';
     modelName = 'stub';
   } else {
     try {
-      answer = await geminiGenerate(question, chunks);
+      answer = await geminiGenerate(question, contextChunks);
       modelProvider = 'google';
       modelName = process.env.RAG_GENERATION_MODEL ?? 'gemini-2.5-flash';
     } catch (err) {
       logger.warn({ err }, '[RAG] Gemini generation failed, falling back to stub');
-      answer = stubGenerate(question, chunks);
+      answer = stubGenerate(question, contextChunks);
       modelProvider = 'stub-fallback';
       modelName = 'stub';
     }
@@ -172,15 +225,23 @@ export async function ask(query: AskQuery): Promise<AskResponse> {
   // -------------------------------------------------------------------------
   // Build response
   // -------------------------------------------------------------------------
-  const isInsufficient = answer.startsWith(INSUFFICIENT_EVIDENCE_MARKER) || chunks.length === 0;
-  const confidence = deriveConfidence(chunks, answer);
-  const citations = isInsufficient ? [] : buildCitations(chunks);
-  const needsHumanReview = confidence === 'LOW' || confidence === 'INSUFFICIENT';
+  const isInsufficient = answer.startsWith(INSUFFICIENT_EVIDENCE_MARKER) || contextChunks.length === 0;
+  const hasCitations = hasValidCitations(answer, contextChunks.length);
+  const grounded = !isInsufficient && hasCitations;
+
+  if (!grounded) {
+    answer = `${INSUFFICIENT_EVIDENCE_MARKER} The retrieved evidence is insufficient or uncited for a grounded answer.`;
+  }
+
+  const confidence = grounded ? deriveConfidence(contextChunks, answer) : 'INSUFFICIENT';
+  const citations = grounded ? buildCitations(contextChunks) : [];
+  const needsHumanReview = !grounded || confidence === 'LOW' || confidence === 'INSUFFICIENT';
 
   const response: AskResponse = {
     answer,
     citations,
     confidence,
+    grounded,
     needsHumanReview,
     traceId,
   };
@@ -200,11 +261,11 @@ export async function ask(query: AskQuery): Promise<AskResponse> {
     retrievalLatencyMs,
     modelProvider,
     modelName,
-    retrievedChunkIds: chunks.map((c) => `${c.documentId}:${c.chunkIndex}`),
+    retrievedChunkIds: contextChunks.map((c) => `${c.documentId}:${c.chunkIndex}`),
   });
 
   logger.info(
-    { traceId, orgId, confidence, chunks: chunks.length, latencyMs: totalLatencyMs },
+    { traceId, orgId, confidence, grounded, chunks: contextChunks.length, latencyMs: totalLatencyMs },
     '[RAG] Ask complete',
   );
 
