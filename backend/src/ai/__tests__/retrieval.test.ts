@@ -7,9 +7,9 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { InMemoryVectorStore } from '../ingest/vectorStore.js';
-import { StubEmbeddingProvider } from '../ingest/embedder.js';
-import { clampTopK, MAX_TOP_K, MIN_TOP_K } from '../retrieval/retrievalService.js';
+import { InMemoryVectorStore, getVectorStore, resetVectorStore } from '../ingest/vectorStore.js';
+import { StubEmbeddingProvider, resetEmbeddingProvider } from '../ingest/embedder.js';
+import { clampTopK, MAX_TOP_K, MIN_TOP_K, retrieve } from '../retrieval/retrievalService.js';
 import type { VectorStoreEntry, EmbeddedChunk } from '../ingest/types.js';
 
 // ---------------------------------------------------------------------------
@@ -191,9 +191,58 @@ describe('InMemoryVectorStore – tenant isolation', () => {
     expect(results).toEqual([]);
   });
 
+  it('listCandidates keeps org filtering and returns chunk ids', async () => {
+    await store.upsert([
+      makeEntry('c1', 'org-A', 'doc-1', 0, 'Alpha specific text'),
+      makeEntry('c2', 'org-B', 'doc-2', 0, 'Beta text'),
+    ]);
+    const candidates = await store.listCandidates({ orgId: 'org-A' }, 10);
+    expect(candidates.length).toBe(1);
+    expect(candidates[0]?.chunkId).toBe('c1');
+    expect(candidates[0]?.orgId).toBe('org-A');
+  });
+
   it('clamps topK to server-safe bounds', () => {
     expect(clampTopK(undefined)).toBeGreaterThanOrEqual(MIN_TOP_K);
     expect(clampTopK(0)).toBe(MIN_TOP_K);
     expect(clampTopK(999)).toBe(MAX_TOP_K);
+  });
+});
+
+describe('RetrievalService – hybrid + rerank', () => {
+  beforeEach(() => {
+    process.env.RAG_VECTOR_STORE = 'memory';
+    process.env.RAG_EMBEDDING_PROVIDER = 'stub';
+    process.env.RAG_HYBRID_ENABLED = 'true';
+    process.env.RAG_RERANK_ENABLED = 'true';
+    process.env.RAG_HYBRID_ALPHA = '0.5';
+    resetVectorStore();
+    resetEmbeddingProvider();
+  });
+
+  it('returns only chunks from requested org in hybrid mode', async () => {
+    const store = getVectorStore() as InMemoryVectorStore;
+    await store.upsert([
+      makeEntry('a-1', 'org-A', 'doc-1', 0, 'Liability cap is USD 100000'),
+      makeEntry('b-1', 'org-B', 'doc-2', 0, 'Liability cap is USD 200000'),
+    ]);
+
+    const result = await retrieve({ orgId: 'org-A', question: 'liability cap', topK: 5 });
+    expect(result.chunks.length).toBeGreaterThan(0);
+    expect(result.chunks.every((c) => c.orgId === 'org-A')).toBe(true);
+  });
+
+  it('includes hybrid and rerank component scores', async () => {
+    const store = getVectorStore() as InMemoryVectorStore;
+    await store.upsert([
+      makeEntry('a-1', 'org-A', 'doc-1', 0, 'Sub-processor notice is 30 days'),
+      makeEntry('a-2', 'org-A', 'doc-1', 1, 'General boilerplate terms'),
+    ]);
+
+    const result = await retrieve({ orgId: 'org-A', question: 'sub processor notice period', topK: 2 });
+    expect(result.chunks.length).toBeGreaterThan(0);
+    expect(result.chunks[0]?.hybridScore).toBeTypeOf('number');
+    expect(result.chunks[0]?.rerankScore).toBeTypeOf('number');
+    expect(result.chunks[0]?.chunkId).toBeDefined();
   });
 });

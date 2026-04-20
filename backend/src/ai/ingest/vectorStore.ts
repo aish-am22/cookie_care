@@ -66,6 +66,7 @@ export class InMemoryVectorStore implements VectorStore {
       if (score < threshold) continue;
 
       results.push({
+        chunkId: entry.id,
         ...entry.chunk,
         documentId: entry.documentId,
         documentTitle: entry.documentTitle,
@@ -78,6 +79,36 @@ export class InMemoryVectorStore implements VectorStore {
 
     results.sort((a, b) => b.score - a.score);
     return results.slice(0, safeTopK);
+  }
+
+  async listCandidates(filter: VectorStoreFilter, limit = 64): Promise<RetrievedChunk[]> {
+    const safeLimit = Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : 64;
+    if (safeLimit === 0) return [];
+    const docIds = filter.documentIds && filter.documentIds.length > 0
+      ? new Set(filter.documentIds)
+      : undefined;
+
+    const results: RetrievedChunk[] = [];
+    for (const entry of this._store.values()) {
+      if (entry.orgId !== filter.orgId) continue;
+      if (filter.documentId && entry.documentId !== filter.documentId) continue;
+      if (docIds && !docIds.has(entry.documentId)) continue;
+      if (filter.versionId && entry.versionId !== filter.versionId) continue;
+      if (filter.docType && entry.docType !== filter.docType) continue;
+      if (entry.isActiveVersion === false) continue;
+      results.push({
+        chunkId: entry.id,
+        ...entry.chunk,
+        documentId: entry.documentId,
+        documentTitle: entry.documentTitle,
+        versionId: entry.versionId,
+        version: entry.version,
+        orgId: entry.orgId,
+        score: 0,
+      });
+      if (results.length >= safeLimit) break;
+    }
+    return results;
   }
 
   async deleteByDocument(documentId: string, orgId: string): Promise<void> {
@@ -125,6 +156,9 @@ export class PrismaVectorStore implements VectorStore {
     filter: VectorStoreFilter,
     topK = 8,
   ): Promise<RetrievedChunk[]> {
+    if (filter.documentId && filter.documentIds?.length) {
+      throw new Error('VectorStore query: provide either documentId or documentIds, not both');
+    }
     const safeTopK = Number.isFinite(topK) ? Math.max(0, Math.floor(topK)) : 8;
     if (safeTopK === 0) return [];
     const { db } = await import('../../infra/db.js');
@@ -135,6 +169,7 @@ export class PrismaVectorStore implements VectorStore {
     // pgvector query: <=> operator calculates cosine distance
     // 1 - (distance) gives us the similarity score
     const results = await db.$queryRawUnsafe<Array<{
+      id: string;
       chunkIndex: number;
       sectionLabel: string | null;
       pageStart: number | null;
@@ -157,6 +192,7 @@ export class PrismaVectorStore implements VectorStore {
         c."pageStart",
         c."pageEnd",
         c."content",
+        c.id,
         c."tokenCount",
         c."contentHash",
         c."embedding",
@@ -174,9 +210,9 @@ export class PrismaVectorStore implements VectorStore {
         AND d."orgId" = $2
         AND d."status" = 'INDEXED'
         AND v."isActive" = true
-        ${filter.documentId ? `AND c."documentId" = $3` : ''}
-        ${docIds ? 'AND c."documentId" = ANY($4::text[])' : ''}
-        ${filter.docType ? `AND d."docType" = $5::"RagDocumentType"` : ''}
+        AND ($3::text IS NULL OR c."documentId" = $3)
+        AND ($4::text[] IS NULL OR c."documentId" = ANY($4::text[]))
+        AND ($5::"RagDocumentType" IS NULL OR d."docType" = $5::"RagDocumentType")
       ORDER BY c.embedding_vec <=> $1::vector
       LIMIT $6
       `,
@@ -190,6 +226,7 @@ export class PrismaVectorStore implements VectorStore {
 
     return results
       .map((row: {
+        id: string;
         chunkIndex: number;
         sectionLabel: string | null;
         pageStart: number | null;
@@ -213,6 +250,7 @@ export class PrismaVectorStore implements VectorStore {
           return null;
         }
         return {
+        chunkId: row.id,
         chunkIndex: row.chunkIndex,
         sectionLabel: row.sectionLabel ?? undefined,
         pageStart: row.pageStart ?? undefined,
@@ -229,8 +267,108 @@ export class PrismaVectorStore implements VectorStore {
         orgId: row.orgId,
         };
       })
-      .filter((row): row is RetrievedChunk => row !== null)
+      .filter((row: RetrievedChunk | null): row is RetrievedChunk => row !== null)
       .filter((row: RetrievedChunk) => row.score >= threshold);
+  }
+
+  async listCandidates(filter: VectorStoreFilter, limit = 64): Promise<RetrievedChunk[]> {
+    if (filter.documentId && filter.documentIds?.length) {
+      throw new Error('VectorStore listCandidates: provide either documentId or documentIds, not both');
+    }
+    const safeLimit = Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : 64;
+    if (safeLimit === 0) return [];
+    const { db } = await import('../../infra/db.js');
+    const docIds = filter.documentIds && filter.documentIds.length > 0 ? filter.documentIds : null;
+
+    const results = await db.$queryRawUnsafe<Array<{
+      id: string;
+      chunkIndex: number;
+      sectionLabel: string | null;
+      pageStart: number | null;
+      pageEnd: number | null;
+      content: string;
+      tokenCount: number;
+      contentHash: string;
+      embedding: unknown;
+      documentId: string;
+      versionId: string;
+      orgId: string;
+      documentTitle: string;
+      versionName: number;
+    }>>(
+      `
+      SELECT
+        c.id,
+        c."chunkIndex",
+        c."sectionLabel",
+        c."pageStart",
+        c."pageEnd",
+        c."content",
+        c."tokenCount",
+        c."contentHash",
+        c."embedding",
+        c."documentId",
+        c."versionId",
+        c."orgId",
+        d.title as "documentTitle",
+        v.version as "versionName"
+      FROM "DocumentChunk" c
+      JOIN "RagDocument" d ON c."documentId" = d.id
+      JOIN "DocumentVersion" v ON c."versionId" = v.id
+      WHERE c."orgId" = $1
+        AND d."orgId" = $1
+        AND d."status" = 'INDEXED'
+        AND v."isActive" = true
+        AND ($2::text IS NULL OR c."documentId" = $2)
+        AND ($3::text[] IS NULL OR c."documentId" = ANY($3::text[]))
+        AND ($4::"RagDocumentType" IS NULL OR d."docType" = $4::"RagDocumentType")
+      ORDER BY c."updatedAt" DESC, c."chunkIndex" ASC
+      LIMIT $5
+      `,
+      filter.orgId,
+      filter.documentId ?? null,
+      docIds,
+      filter.docType ?? null,
+      safeLimit,
+    );
+
+    return results
+      .map((row: {
+        id: string;
+        chunkIndex: number;
+        sectionLabel: string | null;
+        pageStart: number | null;
+        pageEnd: number | null;
+        content: string;
+        tokenCount: number;
+        contentHash: string;
+        embedding: unknown;
+        documentId: string;
+        versionId: string;
+        orgId: string;
+        documentTitle: string;
+        versionName: number;
+      }) => {
+        if (!Array.isArray(row.embedding)) return null;
+        return {
+          chunkId: row.id,
+          chunkIndex: row.chunkIndex,
+          sectionLabel: row.sectionLabel ?? undefined,
+          pageStart: row.pageStart ?? undefined,
+          pageEnd: row.pageEnd ?? undefined,
+          content: row.content,
+          tokenCount: row.tokenCount,
+          contentHash: row.contentHash,
+          embedding: row.embedding as number[],
+          documentId: row.documentId,
+          documentTitle: row.documentTitle,
+          versionId: row.versionId,
+          version: row.versionName,
+          score: 0,
+          orgId: row.orgId,
+        } satisfies RetrievedChunk;
+      })
+      .filter((row: RetrievedChunk | null): row is RetrievedChunk => row !== null);
   }
 
   async deleteByDocument(documentId: string, orgId: string): Promise<void> {

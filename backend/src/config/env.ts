@@ -35,6 +35,23 @@ const envSchema = z.object({
   RAG_GENERATION_MODEL: z.string().default('gemini-2.5-flash'),
   /** Set to "true" to force stub (deterministic) answer generation even when an API key is available. */
   RAG_STUB_GENERATION: z.enum(['true', 'false']).default('false'),
+  /** Hybrid retrieval toggle + weighting (dense alpha, lexical 1-alpha). */
+  RAG_HYBRID_ENABLED: z.enum(['true', 'false']).default('true'),
+  RAG_HYBRID_ALPHA: z.coerce.number().min(0).max(1).default(0.7),
+  RAG_HYBRID_CANDIDATE_MULTIPLIER: z.coerce.number().int().min(1).max(20).default(4),
+  /** Deterministic second-stage reranking controls. */
+  RAG_RERANK_ENABLED: z.enum(['true', 'false']).default('true'),
+  RAG_RERANK_CANDIDATES: z.coerce.number().int().min(1).max(200).default(16),
+  /** Chunking/token estimation controls. */
+  RAG_TOKEN_ESTIMATOR: z.enum(['whitespace', 'char_approx']).default('whitespace'),
+  RAG_TOKEN_CHAR_APPROX_RATIO: z.coerce.number().min(1).max(12).default(4),
+  RAG_CHUNK_TARGET_TOKENS: z.coerce.number().int().min(32).max(2000).default(500),
+  RAG_CHUNK_OVERLAP_TOKENS: z.coerce.number().int().min(0).max(500).default(80),
+  RAG_CHUNK_MAX_PARAGRAPH_TOKENS: z.coerce.number().int().min(32).max(5000).default(700),
+  RAG_CHUNK_MAX_SENTENCE_TOKENS: z.coerce.number().int().min(8).max(1000).default(240),
+  /** Guardrails/eval knobs. */
+  RAG_MIN_GROUNDED_SCORE: z.coerce.number().min(0).max(1).default(0.2),
+  RAG_EVAL_TOP_K: z.coerce.number().int().min(1).max(20).default(3),
 }).refine((data) => Boolean(data.API_KEY || data.GEMINI_API_KEY), {
   message: 'API_KEY or GEMINI_API_KEY is required',
   path: ['API_KEY'],

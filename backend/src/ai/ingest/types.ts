@@ -56,6 +56,8 @@ export interface EmbeddedChunk extends TextChunk {
 
 /** A chunk retrieved from the vector store, with relevance score. */
 export interface RetrievedChunk extends EmbeddedChunk {
+  /** Underlying chunk row id where available. */
+  chunkId?: string;
   /** Document-level metadata. */
   documentId: string;
   documentTitle: string;
@@ -65,6 +67,11 @@ export interface RetrievedChunk extends EmbeddedChunk {
   version: number;
   /** Cosine similarity score [0, 1]. */
   score: number;
+  /** Optional component scores used in hybrid/rerank retrieval. */
+  denseScore?: number;
+  lexicalScore?: number;
+  hybridScore?: number;
+  rerankScore?: number;
   orgId: string;
 }
 
@@ -142,6 +149,8 @@ export interface VectorStore {
     filter: VectorStoreFilter,
     topK?: number,
   ): Promise<RetrievedChunk[]>;
+  /** Candidate scan for lexical/hybrid retrieval. */
+  listCandidates(filter: VectorStoreFilter, limit?: number): Promise<RetrievedChunk[]>;
   /** Remove all chunks for a given documentId (e.g., on re-index). */
   deleteByDocument(documentId: string, orgId: string): Promise<void>;
   /** Return the number of indexed entries scoped to an orgId. */
@@ -182,6 +191,7 @@ export interface RetrievalResult {
 export type ConfidenceLevel = 'HIGH' | 'MEDIUM' | 'LOW' | 'INSUFFICIENT';
 
 export interface Citation {
+  chunkId?: string;
   documentId: string;
   documentTitle: string;
   versionId: string;
