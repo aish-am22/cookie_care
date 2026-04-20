@@ -50,6 +50,14 @@ export const ReviewTab: React.FC = () => {
     });
     return index;
   }, [sectionsWithRisk]);
+  const sectionSearchIndex = useMemo(
+    () => sectionsWithRisk.map((section) => ({
+      id: section.id,
+      haystack: `${section.heading} ${section.content}`.toLowerCase(),
+      content: section.content.toLowerCase(),
+    })),
+    [sectionsWithRisk],
+  );
 
   const riskCounts = useMemo(() => findings.reduce(
     (acc, finding) => {
@@ -154,9 +162,10 @@ export const ReviewTab: React.FC = () => {
   };
 
   const mapFindingToSection = (finding: ReviewFinding): string | null => {
-    const match = sectionsWithRisk.find((section) => {
-      const haystack = `${section.heading} ${section.content}`.toLowerCase();
-      return haystack.includes(finding.clauseName.toLowerCase()) || haystack.includes(getMatchableSnippet(finding.snippet));
+    const clauseName = finding.clauseName.toLowerCase();
+    const snippet = getMatchableSnippet(finding.snippet);
+    const match = sectionSearchIndex.find((section) => {
+      return section.haystack.includes(clauseName) || section.haystack.includes(snippet);
     });
     return match?.id ?? null;
   };
@@ -168,7 +177,7 @@ export const ReviewTab: React.FC = () => {
     }
     if (citation.snippet) {
       const snippet = getMatchableSnippet(citation.snippet);
-      const match = sectionsWithRisk.find((section) => section.content.toLowerCase().includes(snippet));
+      const match = sectionSearchIndex.find((section) => section.content.includes(snippet));
       if (match) return match.id;
     }
     return null;

@@ -4,6 +4,7 @@ import { ReviewTab } from './legal-review/ReviewTab';
 import { DraftTab } from './legal-review/DraftTab';
 import { NegotiateTab } from './legal-review/NegotiateTab';
 import { TemplatePreviewRoute } from './legal-review/TemplatePreviewRoute';
+import { parseTemplatePreviewHash } from '../utils/legalReviewRoutes';
 
 type LegalReviewTab = 'review' | 'draft' | 'negotiate';
 
@@ -23,10 +24,7 @@ export const LegalReviewerView: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const templatePreviewId = useMemo(() => {
-    const match = hashRoute.match(/^#\/legal\/templates\/([^/?#]+)/);
-    return match ? decodeURIComponent(match[1]) : null;
-  }, [hashRoute]);
+  const templatePreviewId = useMemo(() => parseTemplatePreviewHash(hashRoute), [hashRoute]);
 
   return (
     <div className="max-w-7xl mx-auto mt-6">

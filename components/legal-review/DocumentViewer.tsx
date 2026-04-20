@@ -39,7 +39,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
   onSectionSelect,
   emptyMessage = 'Document preview will appear here once content is available.',
   className = '',
-  scrollAreaClassName = '',
+  scrollAreaClassName = 'p-4 space-y-3',
 }) => {
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -57,7 +57,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
         <h3 className="text-sm font-semibold text-[var(--text-headings)]">{title}</h3>
         <span className="text-xs text-[var(--text-primary)]">{renderedSections.length} sections</span>
       </div>
-      <div className={`flex-1 min-h-0 overflow-y-auto p-4 space-y-3 ${scrollAreaClassName}`}>
+      <div className={`flex-1 min-h-0 overflow-y-auto ${scrollAreaClassName}`}>
         {renderedSections.length === 0 ? (
           <div className="h-56 border-2 border-dashed border-[var(--border-primary)] rounded-xl flex items-center justify-center text-sm text-[var(--text-primary)] text-center px-6">
             {emptyMessage}

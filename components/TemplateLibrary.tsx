@@ -106,6 +106,7 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
                                         type="button"
                                         onClick={() => onTemplatePreview?.(template)}
                                         className="flex items-center gap-3 text-left min-w-0"
+                                        aria-label={`Preview ${template.name} in app`}
                                     >
                                         <BookOpenIcon className="h-5 w-5 text-brand-blue flex-shrink-0" />
                                         <p className="text-sm font-medium text-[var(--text-headings)] truncate">{template.name}</p>
@@ -119,6 +120,7 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
                                     type="button"
                                     onClick={() => onTemplatePreview?.(template)}
                                     className="h-8 px-3 rounded-lg border border-[var(--border-primary)] text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
+                                    aria-label={`Preview ${template.name} in app`}
                                   >
                                     Preview in app
                                   </button>

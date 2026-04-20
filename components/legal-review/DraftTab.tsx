@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { contractsApi } from '../../api/contractsApi';
 import { aiApi, DRAFT_SUGGESTION_TOP_K, buildDraftRetrievalQuestion, type RetrievedContextChunk } from '../../api/aiApi';
 import { useTemplates } from '../../hooks/useTemplates';
@@ -7,6 +7,7 @@ import type { ContractTemplate } from '../../types';
 import { AlertTriangleIcon, ArrowPathIcon, BookOpenIcon, DocumentTextIcon } from '../Icons';
 import { DocumentViewer } from './DocumentViewer';
 import { parseDocumentSections, stripHtml } from '../../utils/legalReview';
+import { buildTemplatePreviewHash } from '../../utils/legalReviewRoutes';
 
 const contractTypes = ['Non-Disclosure Agreement (NDA)', 'Consulting Agreement', 'Service Agreement'] as const;
 
@@ -40,7 +41,10 @@ export const DraftTab: React.FC = () => {
 
   const draftSections = useMemo(() => parseDocumentSections(stripHtml(draftContent)), [draftContent]);
   const previewSections = useMemo(() => parseDocumentSections(previewTemplate?.content ?? ''), [previewTemplate]);
-  const buildTemplatePreviewUrl = (templateId: string) => `${window.location.origin}${window.location.pathname}#/legal/templates/${templateId}`;
+  const buildTemplatePreviewUrl = useCallback(
+    (templateId: string) => `${window.location.origin}${window.location.pathname}${buildTemplatePreviewHash(templateId)}`,
+    [],
+  );
 
   const handleRetrieveSuggestions = async () => {
     setIsRetrieving(true);
