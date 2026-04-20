@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 types.js
 .env
+.env
+node_modules/
+dist/

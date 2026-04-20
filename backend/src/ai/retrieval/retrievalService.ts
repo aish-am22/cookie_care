@@ -54,7 +54,7 @@ function chunkKey(chunk: RetrievedChunk): string {
 }
 
 export function clampTopK(value: number | undefined): number {
-  if (!Number.isFinite(value)) return DEFAULT_TOP_K;
+  if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_TOP_K;
   return Math.min(MAX_TOP_K, Math.max(MIN_TOP_K, Math.floor(value)));
 }
 

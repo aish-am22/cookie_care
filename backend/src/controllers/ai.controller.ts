@@ -143,7 +143,8 @@ export async function askHandler(
   if (!userId) {
     res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } });
     return;
-  }
+  } 
+  
 
   const { question, documentId, docType, topK } = req.body as AskBody;
 

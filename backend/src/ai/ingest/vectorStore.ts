@@ -9,7 +9,6 @@ import type {
   VectorStoreFilter,
   RetrievedChunk,
 } from './types.js';
-import logger from '../../infra/logger.js';
 
 function cosineSimilarity(a: number[], b: number[]): number {
   const len = Math.min(a.length, b.length);
@@ -131,7 +130,7 @@ export class InMemoryVectorStore implements VectorStore {
 export class PrismaVectorStore implements VectorStore {
   
   /**
-   * Embeddings ko naye 'embedding_vec' column mein save karta hai
+   * Persist embeddings into the pgvector column.
    */
   async upsert(entries: VectorStoreEntry[]): Promise<void> {
     const { db } = await import('../../infra/db.js');
@@ -141,7 +140,7 @@ export class PrismaVectorStore implements VectorStore {
       
       // SQL query to update the vector column specifically
       await db.$executeRawUnsafe(
-        `UPDATE "DocumentChunk" SET "embedding_vec" = $1::vector WHERE id = $2`,
+        `UPDATE "DocumentChunk" SET "embedding" = $1::vector WHERE id = $2`,
         vectorSql,
         entry.id
       );
@@ -177,7 +176,6 @@ export class PrismaVectorStore implements VectorStore {
       content: string;
       tokenCount: number;
       contentHash: string;
-      embedding: unknown;
       documentId: string;
       versionId: string;
       orgId: string;
@@ -195,17 +193,16 @@ export class PrismaVectorStore implements VectorStore {
         c.id,
         c."tokenCount",
         c."contentHash",
-        c."embedding",
         c."documentId",
         c."versionId",
         c."orgId",
         d.title as "documentTitle",
         v.version as "versionName",
-        1 - (c.embedding_vec <=> $1::vector) as similarity_score
+        1 - (c."embedding" <=> $1::vector) as similarity_score
       FROM "DocumentChunk" c
       JOIN "RagDocument" d ON c."documentId" = d.id
       JOIN "DocumentVersion" v ON c."versionId" = v.id
-      WHERE c."embedding_vec" IS NOT NULL
+      WHERE c."embedding" IS NOT NULL
         AND c."orgId" = $2
         AND d."orgId" = $2
         AND d."status" = 'INDEXED'
@@ -213,7 +210,7 @@ export class PrismaVectorStore implements VectorStore {
         AND ($3::text IS NULL OR c."documentId" = $3)
         AND ($4::text[] IS NULL OR c."documentId" = ANY($4::text[]))
         AND ($5::"RagDocumentType" IS NULL OR d."docType" = $5::"RagDocumentType")
-      ORDER BY c.embedding_vec <=> $1::vector
+      ORDER BY c."embedding" <=> $1::vector
       LIMIT $6
       `,
       vectorSql,
@@ -224,32 +221,9 @@ export class PrismaVectorStore implements VectorStore {
       safeTopK,
     );
 
-    return results
-      .map((row: {
-        id: string;
-        chunkIndex: number;
-        sectionLabel: string | null;
-        pageStart: number | null;
-        pageEnd: number | null;
-        content: string;
-        tokenCount: number;
-        contentHash: string;
-        embedding: unknown;
-        documentId: string;
-        documentTitle: string;
-        versionId: string;
-        versionName: number;
-        similarity_score: number;
-        orgId: string;
-      }) => {
-        if (!Array.isArray(row.embedding)) {
-          logger.warn(
-            { documentId: row.documentId, versionId: row.versionId, chunkIndex: row.chunkIndex },
-            '[RAG] Skipping chunk with malformed embedding payload',
-          );
-          return null;
-        }
-        return {
+    const retrievedChunks: RetrievedChunk[] = [];
+    for (const row of results) {
+      const chunk: RetrievedChunk = {
         chunkId: row.id,
         chunkIndex: row.chunkIndex,
         sectionLabel: row.sectionLabel ?? undefined,
@@ -258,17 +232,21 @@ export class PrismaVectorStore implements VectorStore {
         content: row.content,
         tokenCount: row.tokenCount,
         contentHash: row.contentHash,
-        embedding: Array.isArray(row.embedding) ? (row.embedding as number[]) : [],
+        embedding: [],
         documentId: row.documentId,
         documentTitle: row.documentTitle,
         versionId: row.versionId,
         version: row.versionName,
         score: row.similarity_score,
         orgId: row.orgId,
-        };
-      })
-      .filter((row: RetrievedChunk | null): row is RetrievedChunk => row !== null)
-      .filter((row: RetrievedChunk) => row.score >= threshold);
+      };
+
+      if (chunk.score >= threshold) {
+        retrievedChunks.push(chunk);
+      }
+    }
+
+    return retrievedChunks;
   }
 
   async listCandidates(filter: VectorStoreFilter, limit = 64): Promise<RetrievedChunk[]> {
@@ -289,7 +267,6 @@ export class PrismaVectorStore implements VectorStore {
       content: string;
       tokenCount: number;
       contentHash: string;
-      embedding: unknown;
       documentId: string;
       versionId: string;
       orgId: string;
@@ -306,7 +283,6 @@ export class PrismaVectorStore implements VectorStore {
         c."content",
         c."tokenCount",
         c."contentHash",
-        c."embedding",
         c."documentId",
         c."versionId",
         c."orgId",
@@ -332,43 +308,28 @@ export class PrismaVectorStore implements VectorStore {
       safeLimit,
     );
 
-    return results
-      .map((row: {
-        id: string;
-        chunkIndex: number;
-        sectionLabel: string | null;
-        pageStart: number | null;
-        pageEnd: number | null;
-        content: string;
-        tokenCount: number;
-        contentHash: string;
-        embedding: unknown;
-        documentId: string;
-        versionId: string;
-        orgId: string;
-        documentTitle: string;
-        versionName: number;
-      }) => {
-        if (!Array.isArray(row.embedding)) return null;
-        return {
-          chunkId: row.id,
-          chunkIndex: row.chunkIndex,
-          sectionLabel: row.sectionLabel ?? undefined,
-          pageStart: row.pageStart ?? undefined,
-          pageEnd: row.pageEnd ?? undefined,
-          content: row.content,
-          tokenCount: row.tokenCount,
-          contentHash: row.contentHash,
-          embedding: row.embedding as number[],
-          documentId: row.documentId,
-          documentTitle: row.documentTitle,
-          versionId: row.versionId,
-          version: row.versionName,
-          score: 0,
-          orgId: row.orgId,
-        } satisfies RetrievedChunk;
-      })
-      .filter((row: RetrievedChunk | null): row is RetrievedChunk => row !== null);
+    const retrievedChunks: RetrievedChunk[] = [];
+    for (const row of results) {
+      retrievedChunks.push({
+        chunkId: row.id,
+        chunkIndex: row.chunkIndex,
+        sectionLabel: row.sectionLabel ?? undefined,
+        pageStart: row.pageStart ?? undefined,
+        pageEnd: row.pageEnd ?? undefined,
+        content: row.content,
+        tokenCount: row.tokenCount,
+        contentHash: row.contentHash,
+        embedding: [],
+        documentId: row.documentId,
+        documentTitle: row.documentTitle,
+        versionId: row.versionId,
+        version: row.versionName,
+        score: 0,
+        orgId: row.orgId,
+      });
+    }
+
+    return retrievedChunks;
   }
 
   async deleteByDocument(documentId: string, orgId: string): Promise<void> {

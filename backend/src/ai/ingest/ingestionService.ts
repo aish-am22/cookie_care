@@ -82,6 +82,7 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
           where: { orgId, filename, title, docType },
           orderBy: { createdAt: 'desc' },
         });
+    const previousDocStatus = ragDoc?.status;
 
     if (!ragDoc) {
       ragDoc = await db.ragDocument.create({
@@ -123,7 +124,48 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
       where: { documentId: currentDocumentId, isActive: true },
       orderBy: { version: 'desc' },
     });
+    const embedder = getEmbeddingProvider();
+
     if (activeVersion?.contentHash === contentHash) {
+      const existingChunkCount = await db.documentChunk.count({ where: { versionId: activeVersion.id } });
+      let hasMatchingVectorDimension = false;
+
+      if (typeof (db as unknown as { $queryRawUnsafe?: unknown }).$queryRawUnsafe === 'function') {
+        const vectorRows = await (
+          db as unknown as {
+            $queryRawUnsafe: <T>(query: string, ...values: unknown[]) => Promise<T>;
+          }
+        ).$queryRawUnsafe<Array<{ dims: number | null }>>(
+          `SELECT vector_dims("embedding")::int AS dims
+           FROM "DocumentChunk"
+           WHERE "versionId" = $1 AND "embedding" IS NOT NULL
+           LIMIT 1`,
+          activeVersion.id,
+        );
+        hasMatchingVectorDimension = vectorRows[0]?.dims === embedder.dimensions;
+      }
+
+      const shouldSkip =
+        previousDocStatus === 'INDEXED' &&
+        existingChunkCount > 0 &&
+        hasMatchingVectorDimension;
+
+      if (!shouldSkip) {
+        logger.info(
+          {
+            documentId: currentDocumentId,
+            versionId: activeVersion.id,
+            contentHash,
+            status: previousDocStatus,
+            existingChunkCount,
+            expectedEmbeddingDimensions: embedder.dimensions,
+            hasMatchingVectorDimension,
+          },
+          '[RAG] Re-indexing despite hash match due to stale/invalid active index state',
+        );
+      }
+
+      if (shouldSkip) {
       logger.info(
         { documentId: currentDocumentId, versionId: activeVersion.id, contentHash },
         '[RAG] Skipping ingest – identical active content already indexed',
@@ -138,6 +180,7 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
         status: 'INDEXED',
         chunksIndexed: 0,
       };
+      }
     }
     const existing = await db.documentVersion.count({ where: { documentId: currentDocumentId } });
     const versionNumber = existing + 1;
@@ -166,7 +209,6 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
     const sections = parser.parse(content, mimeType);
     const chunks = defaultChunker.chunk(sections);
 
-    const embedder = getEmbeddingProvider();
     const embeddings = await embedder.embedBatch(chunks.map((c) => c.content));
 
     // -----------------------------------------------------------------------
@@ -185,7 +227,6 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
         content: chunk.content,
         tokenCount: chunk.tokenCount,
         contentHash: chunk.contentHash,
-        embedding: embeddings[i] as unknown as object,
       })),
     });
     const dbChunks = await db.documentChunk.findMany({

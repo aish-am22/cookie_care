@@ -10,6 +10,7 @@ const state = {
 
 vi.mock('../../infra/db.js', () => ({
   db: {
+    $queryRawUnsafe: vi.fn(async () => [{ dims: 3 }]),
     ragDocument: {
       findFirst: vi.fn(async ({ where }) => (state.ragDoc && (!where?.id || state.ragDoc.id === where.id) ? state.ragDoc : null)),
       create: vi.fn(async ({ data }) => {
@@ -51,6 +52,7 @@ vi.mock('../../infra/db.js', () => ({
         state.chunks = state.chunks.filter((c) => c.versionId !== where.versionId);
         return { count: 0 };
       }),
+      count: vi.fn(async ({ where }) => state.chunks.filter((c) => c.versionId === where.versionId).length),
       createMany: vi.fn(async ({ data }) => {
         state.chunks.push(
           ...data.map((c: { versionId: string; chunkIndex: number }, idx: number) => ({
@@ -82,6 +84,7 @@ vi.mock('../ingest/chunker.js', () => ({
 
 vi.mock('../ingest/embedder.js', () => ({
   getEmbeddingProvider: () => ({
+    dimensions: 3,
     embedBatch: vi.fn(async () => [[0.1, 0.2, 0.3]]),
   }),
 }));

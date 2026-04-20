@@ -233,12 +233,11 @@ model DocumentChunk {
   tokenCount Int             @default(0)
   /// SHA-256 hex of chunk content for dedup
   contentHash String
-  /// Serialised embedding vector (JSON array of floats) – populated after embed step
-  embedding  Json?
-  /// pgvector column used by raw SQL similarity search in PrismaVectorStore
-  embeddingVec Unsupported("vector(768)")? @map("embedding_vec")
+  /// pgvector embedding column used by raw SQL similarity search in PrismaVectorStore
+  embedding  Unsupported("vector(256)")?
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([orgId])
   @@index([documentId])
