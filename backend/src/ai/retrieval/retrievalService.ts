@@ -31,7 +31,7 @@ const MIN_SCORE_THRESHOLD = 0.1; // Discard very low-relevance chunks
 
 export function clampTopK(value: number | undefined): number {
   if (!Number.isFinite(value)) return DEFAULT_TOP_K;
-  return Math.min(MAX_TOP_K, Math.max(MIN_TOP_K, Math.floor(value!)));
+  return Math.min(MAX_TOP_K, Math.max(MIN_TOP_K, Math.floor(value)));
 }
 
 /**

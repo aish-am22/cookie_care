@@ -9,6 +9,7 @@ import type {
   VectorStoreFilter,
   RetrievedChunk,
 } from './types.js';
+import logger from '../../infra/logger.js';
 
 function cosineSimilarity(a: number[], b: number[]): number {
   const len = Math.min(a.length, b.length);
@@ -45,6 +46,8 @@ export class InMemoryVectorStore implements VectorStore {
   }
 
   async query(queryEmbedding: number[], filter: VectorStoreFilter, topK = 8): Promise<RetrievedChunk[]> {
+    const safeTopK = Number.isFinite(topK) ? Math.max(0, Math.floor(topK)) : 8;
+    if (safeTopK === 0) return [];
     const threshold = filter.threshold ?? -1;
     const docIds = filter.documentIds && filter.documentIds.length > 0
       ? new Set(filter.documentIds)
@@ -74,7 +77,7 @@ export class InMemoryVectorStore implements VectorStore {
     }
 
     results.sort((a, b) => b.score - a.score);
-    return results.slice(0, Math.max(1, topK));
+    return results.slice(0, safeTopK);
   }
 
   async deleteByDocument(documentId: string, orgId: string): Promise<void> {
@@ -122,6 +125,8 @@ export class PrismaVectorStore implements VectorStore {
     filter: VectorStoreFilter,
     topK = 8,
   ): Promise<RetrievedChunk[]> {
+    const safeTopK = Number.isFinite(topK) ? Math.max(0, Math.floor(topK)) : 8;
+    if (safeTopK === 0) return [];
     const { db } = await import('../../infra/db.js');
     const vectorSql = `[${queryEmbedding.join(',')}]`;
     const threshold = filter.threshold ?? -1;
@@ -180,7 +185,7 @@ export class PrismaVectorStore implements VectorStore {
       filter.documentId ?? null,
       docIds,
       filter.docType ?? null,
-      topK,
+      safeTopK,
     );
 
     return results
@@ -199,7 +204,15 @@ export class PrismaVectorStore implements VectorStore {
         versionName: number;
         similarity_score: number;
         orgId: string;
-      }) => ({
+      }) => {
+        if (!Array.isArray(row.embedding)) {
+          logger.warn(
+            { documentId: row.documentId, versionId: row.versionId, chunkIndex: row.chunkIndex },
+            '[RAG] Skipping chunk with malformed embedding payload',
+          );
+          return null;
+        }
+        return {
         chunkIndex: row.chunkIndex,
         sectionLabel: row.sectionLabel ?? undefined,
         pageStart: row.pageStart ?? undefined,
@@ -214,7 +227,9 @@ export class PrismaVectorStore implements VectorStore {
         version: row.versionName,
         score: row.similarity_score,
         orgId: row.orgId,
-      }))
+        };
+      })
+      .filter((row): row is RetrievedChunk => row !== null)
       .filter((row: RetrievedChunk) => row.score >= threshold);
   }
 

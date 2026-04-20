@@ -14,7 +14,10 @@ import type { EmbeddingProvider } from './types.js';
 
 const DEFAULT_TIMEOUT_MS = Number(process.env.RAG_MODEL_TIMEOUT_MS ?? 15_000);
 const DEFAULT_RETRIES = Number(process.env.RAG_EMBED_RETRIES ?? 2);
-const DEFAULT_CONCURRENCY = Number(process.env.RAG_EMBED_CONCURRENCY ?? 4);
+const RAW_CONCURRENCY = Number(process.env.RAG_EMBED_CONCURRENCY ?? 4);
+const DEFAULT_CONCURRENCY = Math.min(16, Math.max(1, Number.isFinite(RAW_CONCURRENCY) ? Math.floor(RAW_CONCURRENCY) : 4));
+const RAW_MAX_BATCH_SIZE = Number(process.env.RAG_EMBED_MAX_BATCH_SIZE ?? 2000);
+const MAX_BATCH_SIZE = Math.min(5_000, Math.max(1, Number.isFinite(RAW_MAX_BATCH_SIZE) ? Math.floor(RAW_MAX_BATCH_SIZE) : 2000));
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
@@ -90,6 +93,9 @@ export class StubEmbeddingProvider implements EmbeddingProvider {
   }
 
   embedBatch(texts: string[]): Promise<number[][]> {
+    if (texts.length > MAX_BATCH_SIZE) {
+      throw new Error(`Embedding batch too large: ${texts.length} > ${MAX_BATCH_SIZE}`);
+    }
     return Promise.resolve(texts.map((t) => this._deterministicVector(t)));
   }
 
@@ -143,6 +149,9 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
   }
 
   async embedBatch(texts: string[]): Promise<number[][]> {
+    if (texts.length > MAX_BATCH_SIZE) {
+      throw new Error(`Embedding batch too large: ${texts.length} > ${MAX_BATCH_SIZE}`);
+    }
     // Dynamic import to avoid hard dependency when running in stub mode
     const { GoogleGenAI } = await import('@google/genai');
     const genai = new GoogleGenAI({ apiKey: this._apiKey });

@@ -192,21 +192,28 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
       where: { versionId },
       select: { id: true, chunkIndex: true },
     });
+    if (dbChunks.length !== chunks.length) {
+      throw new Error(
+        `[RAG] Chunk persistence mismatch: expected ${chunks.length}, stored ${dbChunks.length}`,
+      );
+    }
     const idByChunkIndex = new Map<number, string>(
       dbChunks.map((c: { id: string; chunkIndex: number }) => [c.chunkIndex, c.id]),
     );
 
-    const vectorEntries: VectorStoreEntry[] = chunks.map((chunk, i) => ({
-      id: idByChunkIndex.get(chunk.chunkIndex) ?? '',
-      orgId,
-      documentId: currentDocumentId,
-      documentTitle,
-      docType,
-      versionId,
-      version: versionNumber,
-      isActiveVersion: true,
-      chunk: { ...chunk, embedding: embeddings[i]! },
-    })).filter((entry) => entry.id);
+    const vectorEntries: VectorStoreEntry[] = chunks
+      .map((chunk, i) => ({
+        id: idByChunkIndex.get(chunk.chunkIndex) ?? '',
+        orgId,
+        documentId: currentDocumentId,
+        documentTitle,
+        docType,
+        versionId,
+        version: versionNumber,
+        isActiveVersion: true,
+        chunk: { ...chunk, embedding: embeddings[i]! },
+      }))
+      .filter((entry) => entry.id !== '');
 
     // -----------------------------------------------------------------------
     // 5. Upsert into VectorStore

@@ -19,8 +19,10 @@ function lexicalScore(query, docText) {
 
 function percentile(values, p) {
   if (!values.length) return 0;
+  if (values.length === 1) return values[0];
   const sorted = [...values].sort((a, b) => a - b);
-  const idx = Math.min(sorted.length - 1, Math.floor((p / 100) * sorted.length));
+  const clampedP = Math.min(100, Math.max(0, p));
+  const idx = Math.round((clampedP / 100) * (sorted.length - 1));
   return sorted[idx];
 }
 

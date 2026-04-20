@@ -179,6 +179,7 @@ RAG_STUB_GENERATION=false        # Set "true" to skip real LLM even when key is 
 RAG_EMBED_CONCURRENCY=4          # Max concurrent embedding requests
 RAG_MODEL_TIMEOUT_MS=15000       # Timeout for embedding/generation model calls
 RAG_EMBED_RETRIES=2              # Retries for embedding calls
+RAG_EMBED_MAX_BATCH_SIZE=2000    # Max texts embedded in a single batch call
 RAG_GENERATION_RETRIES=1         # Retries for generation calls
 RAG_MAX_CONTEXT_TOKENS=1800      # Prompt context token budget (approx)
 RAG_MAX_CONTEXT_CHUNKS=8         # Max retrieved chunks used in prompt
