@@ -43,6 +43,7 @@ import type {
 const SOURCE_MARKER_REGEX = /\[SOURCE\s+(\d+)\]/gi;
 const GENERATION_TIMEOUT_MS = Number(process.env.RAG_MODEL_TIMEOUT_MS ?? 15_000);
 const GENERATION_RETRIES = Number(process.env.RAG_GENERATION_RETRIES ?? 1);
+const MIN_GROUNDED_SCORE = Number(process.env.RAG_MIN_GROUNDED_SCORE ?? 0.2);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -50,6 +51,7 @@ const GENERATION_RETRIES = Number(process.env.RAG_GENERATION_RETRIES ?? 1);
 
 function buildCitations(chunks: RetrievedChunk[]): Citation[] {
   return chunks.map((c) => ({
+    chunkId: c.chunkId,
     documentId: c.documentId,
     documentTitle: c.documentTitle,
     versionId: c.versionId,
@@ -98,12 +100,20 @@ async function withRetry<T>(fn: () => Promise<T>, retries: number): Promise<T> {
 }
 
 function hasValidCitations(answer: string, availableSources: number): boolean {
+  return extractSourceIndexes(answer, availableSources).length > 0;
+}
+
+function extractSourceIndexes(answer: string, availableSources: number): number[] {
   const matches = [...answer.matchAll(SOURCE_MARKER_REGEX)];
-  if (matches.length === 0) return false;
-  return matches.every((m) => {
-    const idx = Number(m[1]);
-    return Number.isInteger(idx) && idx >= 1 && idx <= availableSources;
-  });
+  if (matches.length === 0) return [];
+  const indices = new Set<number>();
+  for (const match of matches) {
+    const idx = Number(match[1]);
+    // Strict all-or-nothing guardrail for legal/privacy QA: any invalid marker invalidates grounding.
+    if (!Number.isInteger(idx) || idx < 1 || idx > availableSources) return [];
+    indices.add(idx);
+  }
+  return Array.from(indices.values()).sort((a, b) => a - b);
 }
 
 // ---------------------------------------------------------------------------
@@ -226,15 +236,18 @@ export async function ask(query: AskQuery): Promise<AskResponse> {
   // Build response
   // -------------------------------------------------------------------------
   const isInsufficient = answer.startsWith(INSUFFICIENT_EVIDENCE_MARKER) || contextChunks.length === 0;
+  const sourceIndexes = extractSourceIndexes(answer, contextChunks.length);
+  const citedChunks = sourceIndexes.map((idx) => contextChunks[idx - 1] as RetrievedChunk);
   const hasCitations = hasValidCitations(answer, contextChunks.length);
-  const grounded = !isInsufficient && hasCitations;
+  const bestCitedScore = citedChunks.reduce((max, c) => Math.max(max, c.score), 0);
+  const grounded = !isInsufficient && hasCitations && bestCitedScore >= MIN_GROUNDED_SCORE;
 
   if (!grounded) {
     answer = `${INSUFFICIENT_EVIDENCE_MARKER} The retrieved evidence is insufficient or uncited for a grounded answer.`;
   }
 
   const confidence = grounded ? deriveConfidence(contextChunks, answer) : 'INSUFFICIENT';
-  const citations = grounded ? buildCitations(contextChunks) : [];
+  const citations = grounded ? buildCitations(citedChunks) : [];
   const needsHumanReview = !grounded || confidence === 'LOW' || confidence === 'INSUFFICIENT';
 
   const response: AskResponse = {

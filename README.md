@@ -141,7 +141,9 @@ backend/src/ai/
     vectorStore.ts     # InMemoryVectorStore (dev) + PrismaVectorStore (prod)
     ingestionService.ts# Orchestration: parse → chunk → embed → index
   retrieval/
-    retrievalService.ts# Semantic retrieval with mandatory orgId tenant filter
+    retrievalService.ts# Hybrid retrieval (dense + lexical) + optional reranking with orgId isolation
+    lexicalRetriever.ts # Deterministic lexical signal (term-frequency scoring)
+    reranker.ts         # Deterministic second-stage reranker interface/implementation
   qa/
     prompts.ts         # Legal-grade prompt templates + guardrails
     askService.ts      # Ask with citation-grade response + audit logging
@@ -183,6 +185,19 @@ RAG_EMBED_MAX_BATCH_SIZE=2000    # Max texts embedded in a single batch call
 RAG_GENERATION_RETRIES=1         # Retries for generation calls
 RAG_MAX_CONTEXT_TOKENS=1800      # Prompt context token budget (approx)
 RAG_MAX_CONTEXT_CHUNKS=8         # Max retrieved chunks used in prompt
+RAG_HYBRID_ENABLED=true          # Enable dense + lexical hybrid retrieval
+RAG_HYBRID_ALPHA=0.7             # Dense weight (lexical weight is 1-alpha)
+RAG_HYBRID_CANDIDATE_MULTIPLIER=4# Candidate expansion for hybrid merge
+RAG_RERANK_ENABLED=true          # Enable second-stage deterministic reranking
+RAG_RERANK_CANDIDATES=16         # Number of pre-rerank candidates
+RAG_TOKEN_ESTIMATOR=whitespace   # "whitespace" | "char_approx"
+RAG_TOKEN_CHAR_APPROX_RATIO=4    # chars/token heuristic when RAG_TOKEN_ESTIMATOR=char_approx
+RAG_CHUNK_TARGET_TOKENS=500      # Default chunk target size
+RAG_CHUNK_OVERLAP_TOKENS=80      # Chunk overlap
+RAG_CHUNK_MAX_PARAGRAPH_TOKENS=700
+RAG_CHUNK_MAX_SENTENCE_TOKENS=240
+RAG_MIN_GROUNDED_SCORE=0.2       # Minimum cited score to treat answer as grounded
+RAG_EVAL_TOP_K=3                 # Eval retrieval cut-off
 ```
 
 #### 2. Start the backend
@@ -342,8 +357,8 @@ npm run eval:rag
 ```
 
 Report output includes:
-- Retrieval metric: `Recall@k`
-- Answer checks: citation presence rate + grounding proxy rate
+- Retrieval metrics: `Hit@k` + `Recall@k`
+- Answer checks: citation correctness rate + abstention rate on unanswerable questions
 - Latency summary: `p50` / `p95` (offline eval runtime)
 
 ### Deploy / Operator Steps (manual)
@@ -370,3 +385,5 @@ npx prisma generate
    - `GEMINI_API_KEY` (or `API_KEY`)
    - `RAG_EMBEDDING_PROVIDER=gemini`
    - `RAG_VECTOR_STORE=prisma`
+   - `RAG_HYBRID_ENABLED=true`, `RAG_RERANK_ENABLED=true`
+   - tune `RAG_HYBRID_ALPHA` (start at `0.7`) and `RAG_MIN_GROUNDED_SCORE` (start at `0.2`) per legal/privacy eval results

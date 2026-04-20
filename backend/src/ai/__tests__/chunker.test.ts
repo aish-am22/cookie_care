@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { DefaultChunker, estimateTokens } from '../ingest/chunker.js';
+import { DefaultChunker, estimateTokens, createTokenEstimator } from '../ingest/chunker.js';
 import type { ParsedSection } from '../ingest/types.js';
 
 const chunker = new DefaultChunker();
@@ -89,5 +89,19 @@ describe('DefaultChunker', () => {
     expect(estimateTokens('hello world foo')).toBe(3);
     expect(estimateTokens('')).toBe(0);
     expect(estimateTokens('   ')).toBe(0);
+  });
+
+  it('supports char_approx token estimator strategy deterministically', () => {
+    const estimator = createTokenEstimator('char_approx');
+    expect(estimator.estimate('12345678')).toBe(2);
+    expect(estimator.tail('abcdefghij', 2)).toBe('cdefghij');
+  });
+
+  it('keeps overlap deterministic for unchanged content', () => {
+    const sections: ParsedSection[] = [{ content: 'Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa' }];
+    const first = chunker.chunk(sections, { targetTokens: 5, overlapTokens: 2 });
+    const second = chunker.chunk(sections, { targetTokens: 5, overlapTokens: 2 });
+    expect(first.map((c) => c.contentHash)).toEqual(second.map((c) => c.contentHash));
+    expect(first.map((c) => c.content)).toEqual(second.map((c) => c.content));
   });
 });

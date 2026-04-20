@@ -46,6 +46,12 @@
       "question": "What is the SLA for data subject access requests?",
       "expectedEvidenceChunkIds": ["chunk-policy-access"],
       "expectedAnswerWithCitations": "Access requests are acknowledged within 7 days and completed within 30 days. [SOURCE 1]"
+    },
+    {
+      "id": "qa-5-unanswerable",
+      "question": "What breach-notification timeline does this contract guarantee?",
+      "expectedEvidenceChunkIds": [],
+      "expectedAnswerWithCitations": "INSUFFICIENT_EVIDENCE: The provided documents do not contain enough information to answer this question."
     }
   ]
 }

@@ -36,6 +36,7 @@ let mockChunks: unknown[] = [];
 vi.mock('../ingest/vectorStore.js', () => ({
   getVectorStore: () => ({
     query: vi.fn().mockImplementation(() => Promise.resolve(mockChunks)),
+    listCandidates: vi.fn().mockImplementation(() => Promise.resolve(mockChunks)),
     count: vi.fn().mockImplementation(() => Promise.resolve(mockChunks.length)),
     upsert: vi.fn(),
     deleteByDocument: vi.fn(),
@@ -143,6 +144,7 @@ describe('AskService – response schema', () => {
     expect(citation).toHaveProperty('version');
     expect(citation).toHaveProperty('snippet');
     expect(citation).toHaveProperty('score');
+    expect(citation).toHaveProperty('chunkId');
     expect(result.grounded).toBe(true);
   });
 
@@ -189,5 +191,17 @@ describe('AskService – response schema', () => {
     expect(result.citations).toEqual([]);
     process.env.RAG_STUB_GENERATION = 'true';
     delete process.env.GEMINI_API_KEY;
+  });
+
+  it('abstains when cited evidence score is below minimum grounding threshold', async () => {
+    process.env.RAG_HYBRID_ENABLED = 'false';
+    process.env.RAG_RERANK_ENABLED = 'false';
+    mockChunks = [{ ...makeChunk(), score: 0.01 }];
+    const result = await ask({ orgId: ORG_ID, question: 'Liability cap?' });
+    expect(result.grounded).toBe(false);
+    expect(result.confidence).toBe('INSUFFICIENT');
+    expect(result.answer).toContain(INSUFFICIENT_EVIDENCE_MARKER);
+    process.env.RAG_HYBRID_ENABLED = 'true';
+    process.env.RAG_RERANK_ENABLED = 'true';
   });
 });

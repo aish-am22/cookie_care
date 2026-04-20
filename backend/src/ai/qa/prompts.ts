@@ -39,8 +39,9 @@ Rules you MUST follow:
 2. If the context does not contain enough information, say exactly:
    "INSUFFICIENT_EVIDENCE: The provided documents do not contain enough information to answer this question."
 3. Cite every factual claim using [SOURCE n] markers, where n is the passage index.
-4. Be concise and professional. Do not speculate or infer beyond the text.
-5. If multiple passages are relevant, cite all of them.`;
+4. If no source supports a claim, do not answer that claim.
+5. Be concise and professional. Do not speculate or infer beyond the text.
+6. If multiple passages are relevant, cite all of them.`;
 }
 
 /**
@@ -50,7 +51,7 @@ export function buildContextPrompt(question: string, chunks: RetrievedChunk[]): 
   const passageBlock = chunks
     .map(
       (c, i) =>
-        `[SOURCE ${i + 1}] (Document: "${c.documentTitle}", Section: "${c.sectionLabel ?? 'N/A'}", Score: ${c.score.toFixed(3)})\n${c.content}`,
+        `[SOURCE ${i + 1}] (Document: "${c.documentTitle}", Section: "${c.sectionLabel ?? 'N/A'}", Pages: "${c.pageStart ?? 'N/A'}-${c.pageEnd ?? 'N/A'}", ChunkId: "${c.chunkId ?? `${c.documentId}:${c.chunkIndex}`}", Score: ${c.score.toFixed(3)})\n${c.content}`,
     )
     .join('\n\n---\n\n');
 
