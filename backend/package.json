@@ -9,6 +9,7 @@
     "build": "tsc",
     "dev": "npm run build && npm start",
     "test": "vitest run",
+    "eval:rag": "node eval/runEval.mjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:migrate:dev": "prisma migrate dev",

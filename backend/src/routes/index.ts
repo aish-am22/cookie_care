@@ -48,7 +48,7 @@ router.post('/generate-contract', generateContract);
 // Chat with document: POST /api/chat-with-document
 router.use('/chat-with-document', chatRouter);
 
-// Ask (RAG Q&A, Phase A stub): POST /api/ask
+// Ask (RAG Q&A): POST /api/ask
 router.use('/ask', askRouter);
 
 // AI RAG pipeline: POST /api/ai/ingest, /api/ai/retrieve, /api/ai/ask
@@ -61,4 +61,3 @@ router.use('/users', userRouter);
 router.use('/dashboard', dashboardRouter);
 
 export default router;
-

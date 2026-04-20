@@ -79,7 +79,9 @@ Return ONLY the valid JSON object.`;
 
 import { db } from '../../infra/db.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
-import { chatWithDocument } from '../chat/index.js';
+import { ingestDocument } from '../../ai/ingest/ingestionService.js';
+import { ask as askRag } from '../../ai/qa/askService.js';
+import type { AskResponse } from '../../ai/ingest/types.js';
 
 /** Canonical contract ingest lifecycle states. Mirrors the Prisma ContractIngestStatus enum. */
 export type ContractIngestStatus = 'UPLOADED' | 'INGESTING' | 'INDEXED' | 'READY' | 'FAILED';
@@ -149,10 +151,43 @@ export const ingestContractDocument = async (
   // Mark as INGESTING
   await db.contractDocument.update({ where: { id }, data: { status: 'INGESTING' } });
 
-  // Phase A stub: immediately mark READY (Phase B will add real embedding pipeline here)
+  if (!doc.content) {
+    throw new ValidationError('Contract has no content to ingest.');
+  }
+
+  const ingestResult = await ingestDocument({
+    content: doc.content,
+    meta: {
+      orgId: userId,
+      userId,
+      logicalDocumentId: (doc.metadata as { ragDocumentId?: string } | null)?.ragDocumentId,
+      title: doc.filename,
+      filename: doc.filename,
+      mimeType: doc.mimeType,
+      docType: 'CONTRACT',
+      extra: { contractDocumentId: doc.id },
+    },
+  });
+
+  if (ingestResult.status !== 'INDEXED') {
+    const failed = await db.contractDocument.update({
+      where: { id },
+      data: { status: 'FAILED', errorMsg: ingestResult.errorMsg ?? 'Contract ingest failed' },
+    });
+    return toDTO(failed);
+  }
+
   const updated = await db.contractDocument.update({
     where: { id },
-    data: { status: 'READY' },
+    data: {
+      status: 'READY',
+      errorMsg: null,
+      metadata: {
+        ...(doc.metadata && typeof doc.metadata === 'object' ? (doc.metadata as object) : {}),
+        ragDocumentId: ingestResult.documentId,
+        ragVersionId: ingestResult.versionId,
+      },
+    },
   });
   return toDTO(updated);
 };
@@ -169,8 +204,9 @@ export const getContractDocumentStatus = async (
 export const askAboutContract = async (
   contractId: string,
   userId: string,
-  question: string
-): Promise<{ answer: string }> => {
+  question: string,
+  topK?: number,
+): Promise<AskResponse> => {
   const doc = await db.contractDocument.findUnique({ where: { id: contractId } });
   if (!doc || doc.userId !== userId) throw new NotFoundError('Contract not found.');
   if (doc.status !== 'READY' && doc.status !== 'INDEXED') {
@@ -178,12 +214,18 @@ export const askAboutContract = async (
       `Contract is not ready for Q&A (current status: "${doc.status}"). Ingest the contract first.`
     );
   }
-  if (!doc.content) {
-    throw new ValidationError('Contract has no content to query against.');
+  const ragDocumentId = (doc.metadata as { ragDocumentId?: string } | null)?.ragDocumentId;
+  if (!ragDocumentId) {
+    throw new ValidationError('Contract is not linked to indexed RAG content. Re-ingest the contract first.');
   }
 
-  // Phase A: use existing chat service with contract content as document context.
-  // Phase B: replace with RAG retrieval + generation.
-  const response = await chatWithDocument(doc.content, question);
-  return { answer: response.answer };
+  const response = await askRag({
+    orgId: userId,
+    userId,
+    question,
+    documentId: ragDocumentId,
+    docType: 'CONTRACT',
+    topK,
+  });
+  return response;
 };

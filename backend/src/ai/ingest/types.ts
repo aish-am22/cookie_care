@@ -18,6 +18,7 @@ export type RagDocumentType = 'CONTRACT' | 'PLAYBOOK' | 'TEMPLATE' | 'POLICY' | 
 export interface DocumentMeta {
   orgId: string;
   userId: string;
+  logicalDocumentId?: string;
   title: string;
   filename: string;
   mimeType?: string;
@@ -114,8 +115,10 @@ export interface VectorStoreFilter {
   /** Mandatory tenant isolation key. */
   orgId: string;
   documentId?: string;
+  documentIds?: string[];
   versionId?: string;
   docType?: RagDocumentType;
+  threshold?: number;
 }
 
 export interface VectorStoreEntry {
@@ -123,8 +126,10 @@ export interface VectorStoreEntry {
   orgId: string;
   documentId: string;
   documentTitle: string;
+  docType?: RagDocumentType;
   versionId: string;
   version: number;
+  isActiveVersion?: boolean;
   chunk: EmbeddedChunk;
 }
 
@@ -193,6 +198,7 @@ export interface AskResponse {
   answer: string;
   citations: Citation[];
   confidence: ConfidenceLevel;
+  grounded: boolean;
   needsHumanReview: boolean;
   traceId: string;
 }

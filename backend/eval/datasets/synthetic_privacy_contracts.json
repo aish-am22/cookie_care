@@ -1,0 +1,51 @@
+{
+  "name": "synthetic-privacy-contracts-v1",
+  "chunks": [
+    {
+      "id": "chunk-nda-liability",
+      "docType": "CONTRACT",
+      "content": "The total liability of either party under this Agreement will not exceed USD 100,000 in aggregate."
+    },
+    {
+      "id": "chunk-dpa-subprocessor",
+      "docType": "CONTRACT",
+      "content": "Processor must provide 30 days prior notice before appointing a new sub-processor and allow objection."
+    },
+    {
+      "id": "chunk-policy-retention",
+      "docType": "POLICY",
+      "content": "Personal data is retained for 90 days after account closure unless longer retention is legally required."
+    },
+    {
+      "id": "chunk-policy-access",
+      "docType": "POLICY",
+      "content": "Data subject access requests must be acknowledged within 7 days and completed within 30 days."
+    }
+  ],
+  "qaPairs": [
+    {
+      "id": "qa-1",
+      "question": "What is the liability cap in this agreement?",
+      "expectedEvidenceChunkIds": ["chunk-nda-liability"],
+      "expectedAnswerWithCitations": "The agreement caps aggregate liability at USD 100,000. [SOURCE 1]"
+    },
+    {
+      "id": "qa-2",
+      "question": "How much notice is required before adding a sub-processor?",
+      "expectedEvidenceChunkIds": ["chunk-dpa-subprocessor"],
+      "expectedAnswerWithCitations": "The processor must provide 30 days prior notice before appointing a new sub-processor. [SOURCE 1]"
+    },
+    {
+      "id": "qa-3",
+      "question": "How long is personal data retained after account closure?",
+      "expectedEvidenceChunkIds": ["chunk-policy-retention"],
+      "expectedAnswerWithCitations": "Personal data is retained for 90 days after account closure unless legal requirements extend retention. [SOURCE 1]"
+    },
+    {
+      "id": "qa-4",
+      "question": "What is the SLA for data subject access requests?",
+      "expectedEvidenceChunkIds": ["chunk-policy-access"],
+      "expectedAnswerWithCitations": "Access requests are acknowledged within 7 days and completed within 30 days. [SOURCE 1]"
+    }
+  ]
+}

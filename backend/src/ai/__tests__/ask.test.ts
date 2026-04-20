@@ -42,6 +42,15 @@ vi.mock('../ingest/vectorStore.js', () => ({
   }),
 }));
 
+let mockGeneratedText = 'Grounded generated answer [SOURCE 1]';
+vi.mock('@google/genai', () => ({
+  GoogleGenAI: class {
+    models = {
+      generateContent: vi.fn(async () => ({ text: mockGeneratedText })),
+    };
+  },
+}));
+
 // Force stub generation (no real LLM calls in tests)
 process.env.RAG_STUB_GENERATION = 'true';
 
@@ -76,6 +85,9 @@ describe('AskService – response schema', () => {
 
   beforeEach(() => {
     mockChunks = [];
+    mockGeneratedText = 'Grounded generated answer [SOURCE 1]';
+    process.env.RAG_STUB_GENERATION = 'true';
+    delete process.env.GEMINI_API_KEY;
   });
 
   it('returns the full AskResponse contract shape', async () => {
@@ -87,6 +99,7 @@ describe('AskService – response schema', () => {
     expect(result).toHaveProperty('answer');
     expect(result).toHaveProperty('citations');
     expect(result).toHaveProperty('confidence');
+    expect(result).toHaveProperty('grounded');
     expect(result).toHaveProperty('needsHumanReview');
     expect(result).toHaveProperty('traceId');
 
@@ -94,6 +107,7 @@ describe('AskService – response schema', () => {
     expect(typeof result.answer).toBe('string');
     expect(Array.isArray(result.citations)).toBe(true);
     expect(['HIGH', 'MEDIUM', 'LOW', 'INSUFFICIENT']).toContain(result.confidence);
+    expect(typeof result.grounded).toBe('boolean');
     expect(typeof result.needsHumanReview).toBe('boolean');
     expect(typeof result.traceId).toBe('string');
     expect(result.traceId).toMatch(
@@ -110,6 +124,7 @@ describe('AskService – response schema', () => {
     });
 
     expect(result.confidence).toBe('INSUFFICIENT');
+    expect(result.grounded).toBe(false);
     expect(result.needsHumanReview).toBe(true);
     expect(result.citations).toEqual([]);
     expect(result.answer).toContain(INSUFFICIENT_EVIDENCE_MARKER);
@@ -128,6 +143,7 @@ describe('AskService – response schema', () => {
     expect(citation).toHaveProperty('version');
     expect(citation).toHaveProperty('snippet');
     expect(citation).toHaveProperty('score');
+    expect(result.grounded).toBe(true);
   });
 
   it('each citation snippet is at most 303 characters (300 + ellipsis)', async () => {
@@ -156,5 +172,22 @@ describe('AskService – response schema', () => {
     mockChunks = [];
     const insufficientResult = await ask({ orgId: ORG_ID, question: 'anything' });
     expect(insufficientResult.needsHumanReview).toBe(true);
+  });
+
+  it('falls back to insufficient evidence when generated answer has no citations', async () => {
+    process.env.RAG_STUB_GENERATION = 'false';
+    process.env.GEMINI_API_KEY = 'test-key';
+    mockGeneratedText = 'This answer is missing source markers.';
+    mockChunks = [makeChunk()];
+
+    const result = await ask({ orgId: ORG_ID, question: 'Liability cap?' });
+
+    expect(result.grounded).toBe(false);
+    expect(result.confidence).toBe('INSUFFICIENT');
+    expect(result.needsHumanReview).toBe(true);
+    expect(result.answer).toContain(INSUFFICIENT_EVIDENCE_MARKER);
+    expect(result.citations).toEqual([]);
+    process.env.RAG_STUB_GENERATION = 'true';
+    delete process.env.GEMINI_API_KEY;
   });
 });

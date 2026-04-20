@@ -25,7 +25,14 @@ export type { RetrievalQuery, RetrievalResult, RetrievedChunk };
 // ---------------------------------------------------------------------------
 
 const DEFAULT_TOP_K = 8;
+export const MIN_TOP_K = 1;
+export const MAX_TOP_K = 20;
 const MIN_SCORE_THRESHOLD = 0.1; // Discard very low-relevance chunks
+
+export function clampTopK(value: number | undefined): number {
+  if (!Number.isFinite(value)) return DEFAULT_TOP_K;
+  return Math.min(MAX_TOP_K, Math.max(MIN_TOP_K, Math.floor(value)));
+}
 
 /**
  * Retrieve the most relevant chunks for a query, enforcing org-level isolation.
@@ -35,7 +42,8 @@ const MIN_SCORE_THRESHOLD = 0.1; // Discard very low-relevance chunks
  */
 export async function retrieve(query: RetrievalQuery): Promise<RetrievalResult> {
   const startMs = Date.now();
-  const { orgId, question, documentId, topK = DEFAULT_TOP_K } = query;
+  const { orgId, question, documentId, docType } = query;
+  const topK = clampTopK(query.topK);
 
   if (!orgId) throw new Error('RetrievalService: orgId is required for tenant isolation');
 
@@ -47,19 +55,19 @@ export async function retrieve(query: RetrievalQuery): Promise<RetrievalResult> 
   const filter: VectorStoreFilter = {
     orgId,
     ...(documentId ? { documentId } : {}),
+    ...(docType ? { docType } : {}),
+    threshold: MIN_SCORE_THRESHOLD,
   };
 
   // 3. Query vector store
   const vectorStore = getVectorStore();
   const chunks = await vectorStore.query(queryEmbedding, filter, topK);
-
-  // 4. Post-filter very low-similarity results
-  const relevant = chunks.filter((c) => c.score >= MIN_SCORE_THRESHOLD);
+  const relevant = chunks;
 
   const latencyMs = Date.now() - startMs;
 
   logger.debug(
-    { orgId, documentId, returned: relevant.length, latencyMs },
+    { orgId, documentId, docType, topK, returned: relevant.length, latencyMs },
     '[RAG] Retrieval complete',
   );
 

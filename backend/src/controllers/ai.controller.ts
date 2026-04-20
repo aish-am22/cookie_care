@@ -9,7 +9,7 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import { ingestDocument } from '../ai/ingest/ingestionService.js';
-import { retrieve } from '../ai/retrieval/retrievalService.js';
+import { retrieve, clampTopK, MIN_TOP_K, MAX_TOP_K } from '../ai/retrieval/retrievalService.js';
 import { ask } from '../ai/qa/askService.js';
 import logger from '../infra/logger.js';
 import type { RagDocumentType } from '../ai/ingest/types.js';
@@ -75,6 +75,7 @@ export async function ingestHandler(
 interface RetrieveBody {
   question?: string;
   documentId?: string;
+  docType?: string;
   topK?: number;
 }
 
@@ -89,10 +90,20 @@ export async function retrieveHandler(
     return;
   }
 
-  const { question, documentId, topK } = req.body as RetrieveBody;
+  const { question, documentId, docType, topK } = req.body as RetrieveBody;
 
   if (!question) {
     res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'question is required.' } });
+    return;
+  }
+
+  if (topK !== undefined && (!Number.isFinite(topK) || topK < MIN_TOP_K || topK > MAX_TOP_K)) {
+    res.status(400).json({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: `topK must be a number between ${MIN_TOP_K} and ${MAX_TOP_K}.`,
+      },
+    });
     return;
   }
 
@@ -101,7 +112,8 @@ export async function retrieveHandler(
       orgId: userId,
       question,
       documentId,
-      topK,
+      docType: docType as RagDocumentType | undefined,
+      topK: clampTopK(topK),
     });
 
     logger.info({ reqId: req.requestId, chunks: result.chunks.length }, '[RAG] Retrieve request complete');
@@ -140,6 +152,16 @@ export async function askHandler(
     return;
   }
 
+  if (topK !== undefined && (!Number.isFinite(topK) || topK < MIN_TOP_K || topK > MAX_TOP_K)) {
+    res.status(400).json({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: `topK must be a number between ${MIN_TOP_K} and ${MAX_TOP_K}.`,
+      },
+    });
+    return;
+  }
+
   try {
     const result = await ask({
       orgId: userId,
@@ -147,7 +169,7 @@ export async function askHandler(
       question,
       documentId,
       docType: docType as RagDocumentType | undefined,
-      topK,
+      topK: clampTopK(topK),
     });
 
     logger.info(

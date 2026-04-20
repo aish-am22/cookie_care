@@ -56,55 +56,96 @@ function sha256(text: string): string {
  */
 export async function ingestDocument(input: IngestDocumentInput): Promise<IngestionResult> {
   const { content, meta } = input;
-  const { orgId, userId, title, filename, mimeType = 'text/plain', docType = 'OTHER' } = meta;
+  const {
+    orgId,
+    userId,
+    logicalDocumentId,
+    title,
+    filename,
+    mimeType = 'text/plain',
+    docType = 'OTHER',
+  } = meta;
 
   const startMs = Date.now();
   let documentId: string | null = null;
+  let documentTitle = title;
 
   try {
-    // -----------------------------------------------------------------------
-    // 1. Create / update RagDocument
-    // -----------------------------------------------------------------------
-    const ragDoc = await db.ragDocument.create({
-      data: {
-        orgId,
-        userId,
-        title,
-        filename,
-        mimeType,
-        sizeBytes: Buffer.byteLength(content, 'utf8'),
-        docType: docType as import('@prisma/client').RagDocumentType,
-        status: 'INGESTING',
-        metadata: meta.extra as import('@prisma/client').Prisma.JsonObject ?? {},
-      },
-    });
-    documentId = ragDoc.id;
-    const currentDocumentId = ragDoc.id;
-
-    // -----------------------------------------------------------------------
-    // 2. Resolve next version number (1-based, monotonic)
-    // -----------------------------------------------------------------------
-    const existing = await db.documentVersion.count({ where: { documentId: currentDocumentId } });
-    const versionNumber = existing + 1;
     const contentHash = sha256(content);
 
-    // Check for duplicate content (idempotency)
-    const duplicate = await db.documentVersion.findFirst({
-      where: { documentId: currentDocumentId, contentHash },
+    // -----------------------------------------------------------------------
+    // 1. Resolve logical RagDocument for versioned ingest
+    // -----------------------------------------------------------------------
+    let ragDoc = logicalDocumentId
+      ? await db.ragDocument.findFirst({ where: { id: logicalDocumentId, orgId } })
+      : await db.ragDocument.findFirst({
+          where: { orgId, filename, title, docType },
+          orderBy: { createdAt: 'desc' },
+        });
+
+    if (!ragDoc) {
+      ragDoc = await db.ragDocument.create({
+        data: {
+          orgId,
+          userId,
+          title,
+          filename,
+          mimeType,
+          sizeBytes: Buffer.byteLength(content, 'utf8'),
+          docType,
+          status: 'INGESTING',
+          metadata: (meta.extra ?? {}) as object,
+        },
+      });
+    } else {
+      ragDoc = await db.ragDocument.update({
+        where: { id: ragDoc.id },
+        data: {
+          userId,
+          title,
+          filename,
+          mimeType,
+          sizeBytes: Buffer.byteLength(content, 'utf8'),
+          docType,
+          status: 'INGESTING',
+          metadata: (meta.extra ?? ragDoc.metadata ?? {}) as object,
+        },
+      });
+    }
+    const currentDocumentId = ragDoc.id;
+    documentId = currentDocumentId;
+    documentTitle = ragDoc.title;
+
+    // -----------------------------------------------------------------------
+    // 2. Resolve existing active version + idempotency
+    // -----------------------------------------------------------------------
+    const activeVersion = await db.documentVersion.findFirst({
+      where: { documentId: currentDocumentId, isActive: true },
+      orderBy: { version: 'desc' },
     });
-    if (duplicate) {
-      logger.info({ documentId: currentDocumentId, contentHash }, '[RAG] Skipping ingest – identical content already indexed');
+    if (activeVersion?.contentHash === contentHash) {
+      logger.info(
+        { documentId: currentDocumentId, versionId: activeVersion.id, contentHash },
+        '[RAG] Skipping ingest – identical active content already indexed',
+      );
       await db.ragDocument.update({
         where: { id: currentDocumentId },
         data: { status: 'INDEXED' },
       });
       return {
         documentId: currentDocumentId,
-        versionId: duplicate.id,
+        versionId: activeVersion.id,
         status: 'INDEXED',
         chunksIndexed: 0,
       };
     }
+    const existing = await db.documentVersion.count({ where: { documentId: currentDocumentId } });
+    const versionNumber = existing + 1;
+
+    await db.documentVersion.updateMany({
+      where: { documentId: currentDocumentId, isActive: true },
+      data: { isActive: false },
+    });
 
     const docVersion = await db.documentVersion.create({
       data: {
@@ -131,44 +172,48 @@ export async function ingestDocument(input: IngestDocumentInput): Promise<Ingest
     // -----------------------------------------------------------------------
     // 4. Persist DocumentChunk records
     // -----------------------------------------------------------------------
-    const vectorEntries: VectorStoreEntry[] = [];
+    await db.documentChunk.deleteMany({ where: { versionId } });
+    await db.documentChunk.createMany({
+      data: chunks.map((chunk, i) => ({
+        documentId: currentDocumentId,
+        versionId,
+        orgId,
+        chunkIndex: chunk.chunkIndex,
+        sectionLabel: chunk.sectionLabel ?? null,
+        pageStart: chunk.pageStart ?? null,
+        pageEnd: chunk.pageEnd ?? null,
+        content: chunk.content,
+        tokenCount: chunk.tokenCount,
+        contentHash: chunk.contentHash,
+        embedding: embeddings[i] as unknown as object,
+      })),
+    });
+    const dbChunks = await db.documentChunk.findMany({
+      where: { versionId },
+      select: { id: true, chunkIndex: true },
+    });
+    if (dbChunks.length !== chunks.length) {
+      throw new Error(
+        `[RAG] Chunk persistence mismatch: expected ${chunks.length}, stored ${dbChunks.length}`,
+      );
+    }
+    const idByChunkIndex = new Map<number, string>(
+      dbChunks.map((c: { id: string; chunkIndex: number }) => [c.chunkIndex, c.id]),
+    );
 
-    for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i]!;
-      const embedding = embeddings[i]!;
-
-      // Delete any pre-existing chunk at the same index for this version
-      // (handles re-ingest gracefully)
-      await db.documentChunk.deleteMany({
-        where: { versionId, chunkIndex: chunk.chunkIndex },
-      });
-
-      const dbChunk = await db.documentChunk.create({
-        data: {
-          documentId: currentDocumentId,
-          versionId,
-          orgId,
-          chunkIndex: chunk.chunkIndex,
-          sectionLabel: chunk.sectionLabel ?? null,
-          pageStart: chunk.pageStart ?? null,
-          pageEnd: chunk.pageEnd ?? null,
-          content: chunk.content,
-          tokenCount: chunk.tokenCount,
-          contentHash: chunk.contentHash,
-          embedding: embedding as unknown as import('@prisma/client').Prisma.JsonArray,
-        },
-      });
-
-      vectorEntries.push({
-        id: dbChunk.id,
+    const vectorEntries: VectorStoreEntry[] = chunks
+      .map((chunk, i) => ({
+        id: idByChunkIndex.get(chunk.chunkIndex) ?? '',
         orgId,
         documentId: currentDocumentId,
-        documentTitle: title,
+        documentTitle,
+        docType,
         versionId,
         version: versionNumber,
-        chunk: { ...chunk, embedding },
-      });
-    }
+        isActiveVersion: true,
+        chunk: { ...chunk, embedding: embeddings[i]! },
+      }))
+      .filter((entry) => entry.id !== '');
 
     // -----------------------------------------------------------------------
     // 5. Upsert into VectorStore
@@ -236,6 +281,7 @@ export async function reIngestDocument(documentId: string, orgId: string): Promi
     meta: {
       orgId,
       userId: doc.userId,
+      logicalDocumentId: doc.id,
       title: doc.title,
       filename: doc.filename,
       mimeType: doc.mimeType,
