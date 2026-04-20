@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { contractsApi } from '../../api/contractsApi';
-import { aiApi, buildDraftRetrievalQuestion, type RetrievedContextChunk } from '../../api/aiApi';
+import { aiApi, DRAFT_SUGGESTION_TOP_K, buildDraftRetrievalQuestion, type RetrievedContextChunk } from '../../api/aiApi';
 import { useTemplates } from '../../hooks/useTemplates';
 import { TemplateLibrary } from '../TemplateLibrary';
 import { AlertTriangleIcon, ArrowPathIcon, BookOpenIcon, DocumentTextIcon } from '../Icons';
@@ -46,7 +46,7 @@ export const DraftTab: React.FC = () => {
       const result = await aiApi.retrieveContext({
         question: buildDraftRetrievalQuestion({ contractType, jurisdiction, parties, keyTerms }),
         docType: 'TEMPLATE',
-        topK: 6,
+        topK: DRAFT_SUGGESTION_TOP_K,
       });
       setSuggestions(result.chunks);
       setSelectedSuggestion(result.chunks[0] ?? null);

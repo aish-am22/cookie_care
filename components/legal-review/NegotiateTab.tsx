@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { aiApi, buildNegotiationPrompt, type RagCitation } from '../../api/aiApi';
+import { aiApi, DEFAULT_RAG_TOP_K, buildNegotiationPrompt, type RagCitation } from '../../api/aiApi';
 import { AlertTriangleIcon, ScaleIcon } from '../Icons';
 import { normalizeInsufficientAnswer } from '../../utils/legalReview';
 
@@ -10,6 +10,7 @@ const modes = [
 ] as const;
 
 type NegotiationMode = (typeof modes)[number]['id'];
+const FALLBACK_RATIONALE_MESSAGE = 'Rationale was not explicitly provided in the response. Please review cited source context before accepting.';
 
 export const NegotiateTab: React.FC = () => {
   const [currentClause, setCurrentClause] = useState('');
@@ -28,7 +29,7 @@ export const NegotiateTab: React.FC = () => {
     const rationalePart = sections.slice(1).join('\n\n');
     return {
       language,
-      rationale: rationalePart || 'Rationale not explicitly provided; review source-backed answer above.',
+      rationale: rationalePart || FALLBACK_RATIONALE_MESSAGE,
     };
   };
 
@@ -44,7 +45,7 @@ export const NegotiateTab: React.FC = () => {
     try {
       const response = await aiApi.askRag({
         question: buildNegotiationPrompt({ currentClause, counterpartyClause, mode }),
-        topK: 8,
+        topK: DEFAULT_RAG_TOP_K,
         docType: 'PLAYBOOK',
       });
       const parsed = parseSuggestion(response.answer);

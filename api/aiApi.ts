@@ -3,6 +3,12 @@ import type { ApiSuccess } from '../types/api';
 
 export type RagDocumentType = 'CONTRACT' | 'PLAYBOOK' | 'TEMPLATE' | 'POLICY' | 'OTHER';
 export type RagConfidence = 'HIGH' | 'MEDIUM' | 'LOW' | 'INSUFFICIENT';
+export const DEFAULT_RAG_TOP_K = 8;
+export const DRAFT_SUGGESTION_TOP_K = 6;
+
+function withFallback(value: string): string {
+  return value || 'not provided';
+}
 
 export interface RagCitation {
   chunkId?: string;
@@ -98,7 +104,13 @@ export function buildDraftRetrievalQuestion(input: {
   parties: string;
   keyTerms: string;
 }): string {
-  return `Find the most relevant contract template context for a ${input.contractType}. Jurisdiction: ${input.jurisdiction || 'not provided'}. Parties: ${input.parties || 'not provided'}. Key terms: ${input.keyTerms || 'not provided'}. Return content that can ground a high-quality enterprise draft.`;
+  return [
+    `Find the most relevant contract template context for a ${input.contractType}.`,
+    `Jurisdiction: ${withFallback(input.jurisdiction)}.`,
+    `Parties: ${withFallback(input.parties)}.`,
+    `Key terms: ${withFallback(input.keyTerms)}.`,
+    'Return content that can ground a high-quality enterprise draft.',
+  ].join(' ');
 }
 
 export function buildNegotiationPrompt(input: {

@@ -20,6 +20,11 @@ export interface ReviewFinding {
 }
 
 const headingPattern = /^\s*((\d+(\.\d+)*)[.)-]?\s+)?([A-Z][\w\s/&-]{3,})\s*$/;
+export const FINDING_MATCH_SNIPPET_LENGTH = 60;
+
+export function getMatchableSnippet(snippet: string): string {
+  return snippet.slice(0, FINDING_MATCH_SNIPPET_LENGTH).toLowerCase();
+}
 
 export function mapRiskBucket(risk: RiskLevel | string): RiskBucket {
   const normalized = risk.toLowerCase();
@@ -36,9 +41,10 @@ export function parseDocumentSections(text: string): DocumentSection[] {
 
   return segments.map((segment, index) => {
     const lines = segment.split('\n').map((line) => line.trim()).filter(Boolean);
-    const firstLine = lines[0] ?? `Clause ${index + 1}`;
+    const fallbackHeading = `Clause ${index + 1}`;
+    const firstLine = lines[0] ?? fallbackHeading;
     const isHeading = headingPattern.test(firstLine);
-    const heading = isHeading ? firstLine : `Clause ${index + 1}`;
+    const heading = isHeading ? firstLine : fallbackHeading;
     const content = isHeading ? lines.slice(1).join('\n').trim() || firstLine : lines.join('\n');
 
     return {
@@ -53,7 +59,7 @@ export function attachRiskToSections(sections: DocumentSection[], findings: Revi
   return sections.map((section) => {
     const matchingFindings = findings.filter((finding) => {
       const haystack = `${section.heading} ${section.content}`.toLowerCase();
-      return haystack.includes(finding.clauseName.toLowerCase()) || haystack.includes(finding.snippet.slice(0, 60).toLowerCase());
+      return haystack.includes(finding.clauseName.toLowerCase()) || haystack.includes(getMatchableSnippet(finding.snippet));
     });
 
     const riskLevel = matchingFindings.some((finding) => finding.riskLevel === 'high')

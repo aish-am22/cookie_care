@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import * as mammoth from 'mammoth';
-import { aiApi } from '../../api/aiApi';
+import { aiApi, DEFAULT_RAG_TOP_K } from '../../api/aiApi';
 import { legalApi } from '../../api/legalApi';
 import type { RagCitation } from '../../api/aiApi';
 import type { LegalAnalysisResult } from '../../types';
@@ -8,6 +8,7 @@ import { AlertTriangleIcon, PaperAirplaneIcon, ScaleIcon, UploadCloudIcon } from
 import { DocumentViewer } from './DocumentViewer';
 import {
   attachRiskToSections,
+  getMatchableSnippet,
   mapClauseAnalysisToFindings,
   normalizeInsufficientAnswer,
   parseDocumentSections,
@@ -42,6 +43,13 @@ export const ReviewTab: React.FC = () => {
 
   const sections = useMemo(() => parseDocumentSections(documentText), [documentText]);
   const sectionsWithRisk = useMemo(() => attachRiskToSections(sections, findings), [sections, findings]);
+  const sectionIdByHeading = useMemo(() => {
+    const index = new Map<string, string>();
+    sectionsWithRisk.forEach((section) => {
+      index.set(section.heading.toLowerCase(), section.id);
+    });
+    return index;
+  }, [sectionsWithRisk]);
 
   const riskCounts = useMemo(() => findings.reduce(
     (acc, finding) => {
@@ -69,8 +77,8 @@ export const ReviewTab: React.FC = () => {
         const text = await file.text();
         setDocumentText(text);
       }
-    } catch {
-      setError('Unable to read this file. Please upload a DOCX or TXT document.');
+    } catch (parseError) {
+      setError(parseError instanceof Error ? `Unable to read this file: ${parseError.message}` : 'Unable to read this file. Please upload a DOCX or TXT document.');
       setFileName('');
     } finally {
       setIsParsing(false);
@@ -132,7 +140,7 @@ export const ReviewTab: React.FC = () => {
       const response = await aiApi.askRag({
         question: askInput,
         documentId: documentId ?? undefined,
-        topK: 8,
+        topK: DEFAULT_RAG_TOP_K,
       });
       setAskAnswer(response.answer);
       setAskCitations(response.citations);
@@ -148,7 +156,7 @@ export const ReviewTab: React.FC = () => {
   const mapFindingToSection = (finding: ReviewFinding): string | null => {
     const match = sectionsWithRisk.find((section) => {
       const haystack = `${section.heading} ${section.content}`.toLowerCase();
-      return haystack.includes(finding.clauseName.toLowerCase()) || haystack.includes(finding.snippet.slice(0, 50).toLowerCase());
+      return haystack.includes(finding.clauseName.toLowerCase()) || haystack.includes(getMatchableSnippet(finding.snippet));
     });
     return match?.id ?? null;
   };
@@ -303,7 +311,7 @@ export const ReviewTab: React.FC = () => {
                           key={`${citation.documentId}-${citation.versionId}-${index}`}
                           type="button"
                           onClick={() => {
-                            const sectionId = sectionsWithRisk.find((section) => citation.sectionLabel && section.heading.toLowerCase().includes(citation.sectionLabel.toLowerCase()))?.id;
+                            const sectionId = citation.sectionLabel ? sectionIdByHeading.get(citation.sectionLabel.toLowerCase()) : undefined;
                             if (sectionId) setActiveSectionId(sectionId);
                           }}
                           className="px-2.5 py-1 rounded-md text-xs font-medium border border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-headings)]"
