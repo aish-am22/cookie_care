@@ -24,6 +24,11 @@ const ThemeToggle: React.FC<{ theme: string, toggleTheme: () => void }> = ({ the
 
 type View = 'dashboard' | 'scanner' | 'legal' | 'vulnerability' | 'settings';
 
+const getInitialViewFromHash = (): View | null => {
+  if (window.location.hash.startsWith('#/legal')) return 'legal';
+  return null;
+};
+
 const UserMenu: React.FC = () => {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
@@ -80,13 +85,23 @@ const MenuIcon: React.FC<{ className?: string }> = ({ className }) => (
 
 const MainApp: React.FC = () => {
   const [theme, setTheme] = useState('light');
-  const [activeView, setActiveView] = useState<View>('dashboard');
+  const [activeView, setActiveView] = useState<View>(() => getInitialViewFromHash() ?? 'dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') || 'light';
     setTheme(savedTheme);
     document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+  }, []);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const nextView = getInitialViewFromHash();
+      if (nextView) setActiveView(nextView);
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
   const toggleTheme = () => {

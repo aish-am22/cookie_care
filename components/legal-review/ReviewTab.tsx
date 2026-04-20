@@ -161,10 +161,23 @@ export const ReviewTab: React.FC = () => {
     return match?.id ?? null;
   };
 
+  const mapCitationToSection = (citation: RagCitation): string | null => {
+    if (citation.sectionLabel) {
+      const byHeading = sectionIdByHeading.get(citation.sectionLabel.toLowerCase());
+      if (byHeading) return byHeading;
+    }
+    if (citation.snippet) {
+      const snippet = getMatchableSnippet(citation.snippet);
+      const match = sectionsWithRisk.find((section) => section.content.toLowerCase().includes(snippet));
+      if (match) return match.id;
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-6 animate-fade-in-up">
-      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-        <div className="xl:col-span-2 space-y-4">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(22rem,26rem)_minmax(0,1fr)] gap-6 items-start">
+        <div className="space-y-4">
           <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-5 shadow-sm">
             <h3 className="text-lg font-semibold text-[var(--text-headings)]">Document intake</h3>
             <p className="text-sm text-[var(--text-primary)] mt-1">Upload or paste the contract you want to review.</p>
@@ -210,19 +223,29 @@ export const ReviewTab: React.FC = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-xl border border-red-200 bg-red-50/70 p-3 text-center">
-              <p className="text-xs font-medium text-red-600">High risk</p>
-              <p className="text-xl font-bold text-red-700">{riskCounts.high}</p>
+          <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4 shadow-sm space-y-3">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-xl border border-red-200 bg-red-50/70 p-3 text-center">
+                <p className="text-xs font-medium text-red-600">High risk</p>
+                <p className="text-xl font-bold text-red-700">{riskCounts.high}</p>
+              </div>
+              <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-center">
+                <p className="text-xs font-medium text-amber-600">Medium risk</p>
+                <p className="text-xl font-bold text-amber-700">{riskCounts.medium}</p>
+              </div>
+              <div className="rounded-xl border border-green-200 bg-green-50/70 p-3 text-center">
+                <p className="text-xs font-medium text-green-600">Safe</p>
+                <p className="text-xl font-bold text-green-700">{riskCounts.safe}</p>
+              </div>
             </div>
-            <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-center">
-              <p className="text-xs font-medium text-amber-600">Medium risk</p>
-              <p className="text-xl font-bold text-amber-700">{riskCounts.medium}</p>
-            </div>
-            <div className="rounded-xl border border-green-200 bg-green-50/70 p-3 text-center">
-              <p className="text-xs font-medium text-green-600">Safe</p>
-              <p className="text-xl font-bold text-green-700">{riskCounts.safe}</p>
-            </div>
+            {analysis ? (
+              <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] p-3 text-sm">
+                <p className="font-semibold text-[var(--text-headings)]">Overall risk: {analysis.overallRisk.level}</p>
+                <p className="mt-1 text-[var(--text-primary)]">{analysis.overallRisk.summary}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-[var(--text-primary)]">Run legal review to generate clause findings and overall contract risk.</p>
+            )}
           </div>
 
           <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-5 shadow-sm">
@@ -242,7 +265,11 @@ export const ReviewTab: React.FC = () => {
                       const sectionId = mapFindingToSection(finding);
                       if (sectionId) setActiveSectionId(sectionId);
                     }}
-                    className="w-full text-left rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] p-3 hover:border-brand-blue transition-colors"
+                    className={`w-full text-left rounded-xl border bg-[var(--bg-primary)] p-3 transition-colors ${
+                      mapFindingToSection(finding) === activeSectionId
+                        ? 'border-brand-blue ring-1 ring-brand-blue/30'
+                        : 'border-[var(--border-primary)] hover:border-brand-blue'
+                    }`}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-semibold text-[var(--text-headings)]">{finding.clauseName}</p>
@@ -261,20 +288,10 @@ export const ReviewTab: React.FC = () => {
               )}
             </div>
           </div>
-        </div>
-
-        <div className="xl:col-span-3 space-y-4">
-          <DocumentViewer
-            title="In-app contract viewer"
-            sections={sectionsWithRisk}
-            activeSectionId={activeSectionId}
-            onSectionSelect={setActiveSectionId}
-            emptyMessage="Upload or paste a document to enable clause viewer and risk highlighting."
-          />
 
           <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-5 shadow-sm">
             <h3 className="text-lg font-semibold text-[var(--text-headings)]">Ask about this document</h3>
-            <p className="text-sm text-[var(--text-primary)] mt-1">Grounded Q&A with citations from indexed document context.</p>
+            <p className="text-sm text-[var(--text-primary)] mt-1">Grounded Q&A with source references that sync to the viewer.</p>
             <form onSubmit={handleAsk} className="mt-4 flex gap-2">
               <input
                 value={askInput}
@@ -301,7 +318,7 @@ export const ReviewTab: React.FC = () => {
                 </div>
               ) : askAnswer ? (
                 <>
-                  <p className="text-sm text-[var(--text-headings)] whitespace-pre-wrap">
+                  <p className="text-sm text-[var(--text-headings)] whitespace-pre-wrap leading-relaxed">
                     {askAnswer.startsWith('INSUFFICIENT_EVIDENCE') ? normalizeInsufficientAnswer(askAnswer) : askAnswer}
                   </p>
                   {askCitations.length > 0 ? (
@@ -311,10 +328,10 @@ export const ReviewTab: React.FC = () => {
                           key={`${citation.documentId}-${citation.versionId}-${index}`}
                           type="button"
                           onClick={() => {
-                            const sectionId = citation.sectionLabel ? sectionIdByHeading.get(citation.sectionLabel.toLowerCase()) : undefined;
+                            const sectionId = mapCitationToSection(citation);
                             if (sectionId) setActiveSectionId(sectionId);
                           }}
-                          className="px-2.5 py-1 rounded-md text-xs font-medium border border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-headings)]"
+                          className="px-2.5 py-1 rounded-md text-xs font-medium border border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-headings)] hover:border-brand-blue transition-colors"
                           title={citation.snippet}
                         >
                           {citation.documentTitle}
@@ -332,18 +349,23 @@ export const ReviewTab: React.FC = () => {
             </div>
           </div>
         </div>
+
+        <div className="space-y-4">
+          <DocumentViewer
+            title="In-app contract viewer"
+            sections={sectionsWithRisk}
+            activeSectionId={activeSectionId}
+            onSectionSelect={setActiveSectionId}
+            emptyMessage="Upload or paste a document to enable clause viewer and risk highlighting."
+            className="min-h-[32rem] xl:h-[calc(100vh-18rem)]"
+            scrollAreaClassName="p-5 space-y-4"
+          />
+        </div>
       </div>
 
       {analysisWarning && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
           {analysisWarning}
-        </div>
-      )}
-
-      {analysis && (
-        <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4 text-sm text-[var(--text-primary)]">
-          <p className="font-semibold text-[var(--text-headings)]">Overall risk: {analysis.overallRisk.level}</p>
-          <p className="mt-1">{analysis.overallRisk.summary}</p>
         </div>
       )}
 

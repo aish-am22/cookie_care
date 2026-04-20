@@ -3,6 +3,7 @@ import { contractsApi } from '../../api/contractsApi';
 import { aiApi, DRAFT_SUGGESTION_TOP_K, buildDraftRetrievalQuestion, type RetrievedContextChunk } from '../../api/aiApi';
 import { useTemplates } from '../../hooks/useTemplates';
 import { TemplateLibrary } from '../TemplateLibrary';
+import type { ContractTemplate } from '../../types';
 import { AlertTriangleIcon, ArrowPathIcon, BookOpenIcon, DocumentTextIcon } from '../Icons';
 import { DocumentViewer } from './DocumentViewer';
 import { parseDocumentSections, stripHtml } from '../../utils/legalReview';
@@ -24,6 +25,7 @@ export const DraftTab: React.FC = () => {
   const [isRetrieving, setIsRetrieving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previewTemplate, setPreviewTemplate] = useState<ContractTemplate | null>(null);
 
   const { templates, fetchTemplates } = useTemplates();
 
@@ -37,6 +39,8 @@ export const DraftTab: React.FC = () => {
   );
 
   const draftSections = useMemo(() => parseDocumentSections(stripHtml(draftContent)), [draftContent]);
+  const previewSections = useMemo(() => parseDocumentSections(previewTemplate?.content ?? ''), [previewTemplate]);
+  const buildTemplatePreviewUrl = (templateId: string) => `${window.location.origin}${window.location.pathname}#/legal/templates/${templateId}`;
 
   const handleRetrieveSuggestions = async () => {
     setIsRetrieving(true);
@@ -93,8 +97,8 @@ export const DraftTab: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in-up">
-      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-        <div className="xl:col-span-2 space-y-4">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(22rem,25rem)_minmax(0,1fr)] gap-6 items-start">
+        <div className="space-y-4">
           <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-5 shadow-sm">
             <h3 className="text-lg font-semibold text-[var(--text-headings)]">Draft brief</h3>
             <p className="text-sm text-[var(--text-primary)] mt-1">Combine template retrieval and generation in one workflow.</p>
@@ -221,11 +225,13 @@ export const DraftTab: React.FC = () => {
           </div>
         </div>
 
-        <div className="xl:col-span-3 space-y-4">
+        <div className="space-y-4">
           <DocumentViewer
             title={draftTitle}
             sections={draftSections}
             emptyMessage="Generated draft preview appears here."
+            className="min-h-[32rem] xl:h-[calc(100vh-18rem)]"
+            scrollAreaClassName="p-5 space-y-4"
           />
 
           <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-5 shadow-sm">
@@ -247,19 +253,63 @@ export const DraftTab: React.FC = () => {
               <p className="mt-2 text-sm text-[var(--text-primary)]">No retrieval context yet.</p>
             )}
           </div>
+
+          <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-5 shadow-sm">
+            <h3 className="text-lg font-semibold text-[var(--text-headings)] flex items-center gap-2">
+              <DocumentTextIcon className="h-5 w-5 text-brand-blue" />
+              Manage templates in Draft flow
+            </h3>
+            <p className="text-sm text-[var(--text-primary)] mt-1">Click a template to preview it in-app, or open the dedicated preview page in a new tab.</p>
+            <div className="mt-4">
+              <TemplateLibrary
+                templates={templates}
+                onTemplatesChange={fetchTemplates}
+                onTemplatePreview={setPreviewTemplate}
+                buildTemplatePreviewUrl={buildTemplatePreviewUrl}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-5 shadow-sm">
-        <h3 className="text-lg font-semibold text-[var(--text-headings)] flex items-center gap-2">
-          <DocumentTextIcon className="h-5 w-5 text-brand-blue" />
-          Manage templates in Draft flow
-        </h3>
-        <p className="text-sm text-[var(--text-primary)] mt-1">Template library behavior is now embedded in Draft (no separate top-level tab).</p>
-        <div className="mt-4">
-          <TemplateLibrary templates={templates} onTemplatesChange={fetchTemplates} />
+      {previewTemplate && (
+        <div className="fixed inset-0 z-50 bg-slate-950/45 backdrop-blur-[1px] p-4 sm:p-8">
+          <div className="mx-auto h-full max-w-6xl bg-[var(--bg-primary)] rounded-2xl border border-[var(--border-primary)] shadow-2xl flex flex-col min-h-0">
+            <div className="px-4 py-3 border-b border-[var(--border-primary)] flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold text-[var(--text-headings)]">{previewTemplate.name}</h3>
+                <p className="text-xs text-[var(--text-primary)] mt-0.5">Template preview</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={buildTemplatePreviewUrl(previewTemplate.id)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="h-9 px-3 rounded-lg border border-[var(--border-primary)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] inline-flex items-center"
+                >
+                  Open in new tab
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewTemplate(null)}
+                  className="h-9 px-3 rounded-lg border border-[var(--border-primary)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+            <div className="p-4 sm:p-5 flex-1 min-h-0">
+              <DocumentViewer
+                title={previewTemplate.name}
+                sections={previewSections}
+                className="h-full"
+                scrollAreaClassName="p-5 space-y-4"
+                emptyMessage="This template does not contain previewable text."
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {error && (
         <div className="rounded-xl border border-red-300 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-200 flex items-start gap-2">

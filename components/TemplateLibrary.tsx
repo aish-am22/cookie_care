@@ -8,9 +8,16 @@ import { templatesApi } from '../api/templatesApi';
 interface TemplateLibraryProps {
     templates: ContractTemplate[];
     onTemplatesChange: () => void;
+    onTemplatePreview?: (template: ContractTemplate) => void;
+    buildTemplatePreviewUrl?: (templateId: string) => string;
 }
 
-export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ templates, onTemplatesChange }) => {
+export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
+    templates,
+    onTemplatesChange,
+    onTemplatePreview,
+    buildTemplatePreviewUrl,
+}) => {
     const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [fileName, setFileName] = useState<string | null>(null);
@@ -63,8 +70,8 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ templates, onT
 
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-1">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)] gap-4 items-start">
+            <div>
                 <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl border border-[var(--border-primary)] shadow-sm">
                     <h3 className="text-lg font-bold text-[var(--text-headings)] mb-1">Add New Template</h3>
                     <p className="text-xs text-[var(--text-primary)] mb-4">Upload approved legal templates to reuse during generation.</p>
@@ -85,19 +92,47 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ templates, onT
                     )}
                 </div>
             </div>
-            <div className="md:col-span-2">
+            <div className="min-w-0">
                  <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl border border-[var(--border-primary)] shadow-sm">
                     <h3 className="text-lg font-bold text-[var(--text-headings)] mb-4">Available Templates ({templates.length})</h3>
                     <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
                         {templates.length > 0 ? templates.map(template => (
-                           <div key={template.id} className="flex items-center justify-between bg-[var(--bg-secondary)] p-3 rounded-xl border border-[var(--border-primary)]">
-                               <div className="flex items-center gap-3">
-                                    <BookOpenIcon className="h-5 w-5 text-brand-blue" />
-                                    <p className="text-sm font-medium text-[var(--text-headings)]">{template.name}</p>
+                           <div
+                            key={template.id}
+                            className="bg-[var(--bg-secondary)] p-3 rounded-xl border border-[var(--border-primary)] hover:border-brand-blue/60 transition-colors"
+                           >
+                               <div className="flex items-start justify-between gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => onTemplatePreview?.(template)}
+                                        className="flex items-center gap-3 text-left min-w-0"
+                                    >
+                                        <BookOpenIcon className="h-5 w-5 text-brand-blue flex-shrink-0" />
+                                        <p className="text-sm font-medium text-[var(--text-headings)] truncate">{template.name}</p>
+                                    </button>
+                                    <button onClick={() => handleDelete(template.id)} className="p-1.5 rounded-full text-slate-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/50 transition-colors" aria-label="Delete template">
+                                        <TrashIcon className="h-5 w-5" />
+                                    </button>
                                </div>
-                               <button onClick={() => handleDelete(template.id)} className="p-1.5 rounded-full text-slate-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/50 transition-colors" aria-label="Delete template">
-                                   <TrashIcon className="h-5 w-5" />
-                               </button>
+                               <div className="mt-3 flex items-center gap-2">
+                                 <button
+                                    type="button"
+                                    onClick={() => onTemplatePreview?.(template)}
+                                    className="h-8 px-3 rounded-lg border border-[var(--border-primary)] text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
+                                  >
+                                    Preview in app
+                                  </button>
+                                 {buildTemplatePreviewUrl && (
+                                   <a
+                                     href={buildTemplatePreviewUrl(template.id)}
+                                     target="_blank"
+                                     rel="noreferrer"
+                                     className="h-8 px-3 rounded-lg border border-[var(--border-primary)] text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] inline-flex items-center"
+                                   >
+                                     Open in new tab
+                                   </a>
+                                 )}
+                               </div>
                            </div>
                         )) : (
                              <div className="text-center py-12 border-2 border-dashed border-[var(--border-primary)] rounded-xl bg-[var(--bg-secondary)]/50">

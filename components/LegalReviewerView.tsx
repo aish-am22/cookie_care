@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { DocumentTextIcon, ScaleIcon, RedactIcon } from './Icons';
 import { ReviewTab } from './legal-review/ReviewTab';
 import { DraftTab } from './legal-review/DraftTab';
 import { NegotiateTab } from './legal-review/NegotiateTab';
+import { TemplatePreviewRoute } from './legal-review/TemplatePreviewRoute';
 
 type LegalReviewTab = 'review' | 'draft' | 'negotiate';
 
@@ -14,9 +15,25 @@ const tabs: Array<{ id: LegalReviewTab; label: string; icon: React.ReactNode }> 
 
 export const LegalReviewerView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<LegalReviewTab>('review');
+  const [hashRoute, setHashRoute] = useState(window.location.hash);
+
+  useEffect(() => {
+    const handleHashChange = () => setHashRoute(window.location.hash);
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const templatePreviewId = useMemo(() => {
+    const match = hashRoute.match(/^#\/legal\/templates\/([^/?#]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  }, [hashRoute]);
 
   return (
     <div className="max-w-7xl mx-auto mt-6">
+      {templatePreviewId ? (
+        <TemplatePreviewRoute templateId={templatePreviewId} />
+      ) : (
+        <>
       <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-2 shadow-sm">
         <div className="flex flex-col sm:flex-row gap-2">
           {tabs.map((tab) => (
@@ -42,6 +59,8 @@ export const LegalReviewerView: React.FC = () => {
         {activeTab === 'draft' && <DraftTab />}
         {activeTab === 'negotiate' && <NegotiateTab />}
       </div>
+        </>
+      )}
     </div>
   );
 };
