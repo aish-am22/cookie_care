@@ -28,6 +28,8 @@ interface DocumentViewerProps {
   activeSectionId?: string | null;
   onSectionSelect?: (sectionId: string) => void;
   emptyMessage?: string;
+  className?: string;
+  scrollAreaClassName?: string;
 }
 
 export const DocumentViewer: React.FC<DocumentViewerProps> = ({
@@ -36,6 +38,8 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
   activeSectionId,
   onSectionSelect,
   emptyMessage = 'Document preview will appear here once content is available.',
+  className = '',
+  scrollAreaClassName = 'p-4 space-y-3',
 }) => {
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -48,12 +52,12 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const renderedSections = useMemo(() => sections.filter((section) => section.content.trim()), [sections]);
 
   return (
-    <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-sm h-full min-h-[24rem]">
+    <div className={`rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-sm min-h-[24rem] flex flex-col ${className}`}>
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-primary)]">
         <h3 className="text-sm font-semibold text-[var(--text-headings)]">{title}</h3>
         <span className="text-xs text-[var(--text-primary)]">{renderedSections.length} sections</span>
       </div>
-      <div className="max-h-[70vh] overflow-y-auto p-4 space-y-3">
+      <div className={`flex-1 min-h-0 overflow-y-auto ${scrollAreaClassName}`}>
         {renderedSections.length === 0 ? (
           <div className="h-56 border-2 border-dashed border-[var(--border-primary)] rounded-xl flex items-center justify-center text-sm text-[var(--text-primary)] text-center px-6">
             {emptyMessage}
