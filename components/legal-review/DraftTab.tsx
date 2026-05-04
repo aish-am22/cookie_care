@@ -357,7 +357,7 @@ export const DraftTab: React.FC = () => {
                     disabled={isRetrieving}
                     className="h-9 px-3 rounded-xl border border-brand-blue text-brand-blue text-sm font-semibold hover:bg-brand-blue/10 disabled:opacity-60"
                   >
-                    {isRetrieving ? 'Retrieving\u2026' : 'Get suggestions'}
+                    {isRetrieving ? 'Retrieving...' : 'Get suggestions'}
                   </button>
                   <button
                     type="button"
@@ -366,7 +366,7 @@ export const DraftTab: React.FC = () => {
                     className="h-9 px-3 rounded-xl bg-brand-blue text-white text-sm font-semibold hover:bg-brand-blue-light disabled:bg-slate-400 flex items-center gap-1.5"
                   >
                     <SparklesIcon className="h-4 w-4" />
-                    {isGenerating ? 'Generating\u2026' : 'Generate Draft'}
+                    {isGenerating ? 'Generating...' : 'Generate Draft'}
                   </button>
                 </div>
               )}
@@ -447,7 +447,7 @@ export const DraftTab: React.FC = () => {
                 <input
                   value={clauseSearch}
                   onChange={(e) => setClauseSearch(e.target.value)}
-                  placeholder="Search clauses\u2026"
+                  placeholder="Search clauses..."
                   className="w-full h-9 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] pl-9 pr-3 text-sm"
                 />
               </div>
@@ -527,7 +527,7 @@ export const DraftTab: React.FC = () => {
                 className="h-9 px-4 rounded-xl bg-brand-blue text-white text-sm font-semibold hover:bg-brand-blue-light disabled:bg-slate-400 flex items-center gap-1.5"
               >
                 <SparklesIcon className="h-4 w-4" />
-                {isGenerating ? 'Generating\u2026' : 'Generate Draft'}
+                {isGenerating ? 'Generating...' : 'Generate Draft'}
               </button>
               <button
                 type="button"
@@ -606,7 +606,7 @@ export const DraftTab: React.FC = () => {
                         <BookOpenIcon className="h-4 w-4 text-brand-blue flex-shrink-0" />
                         <p className="text-sm font-semibold text-[var(--text-headings)] truncate">{chunk.documentTitle}</p>
                         {chunk.sectionLabel && (
-                          <span className="text-xs text-[var(--text-primary)] flex-shrink-0">\u00b7 {chunk.sectionLabel}</span>
+                          <span className="text-xs text-[var(--text-primary)] flex-shrink-0">&middot; {chunk.sectionLabel}</span>
                         )}
                       </div>
                       <span className="flex-shrink-0 text-xs px-2 py-0.5 rounded-md bg-[var(--bg-tertiary)] text-[var(--text-primary)]">
