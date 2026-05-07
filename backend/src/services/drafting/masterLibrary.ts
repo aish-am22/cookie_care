@@ -36,7 +36,9 @@ export const masterLibrarySchema = z.object({
 export type MasterLibrary = z.infer<typeof masterLibrarySchema>;
 export type MasterClause = z.infer<typeof masterClauseSchema>;
 
+// Matches clause version suffixes such as "_v1", "_v2", "_v3".
 const versionPattern = /_v(\d+)$/i;
+// Matches numbered heading starters such as "1. ", "2.3. ", "5.2.4. ".
 const numberedHeadingPattern = /\b(\d+(?:\.\d+)*\.)\s+/g;
 
 export interface ClausePart {
@@ -71,6 +73,10 @@ export function splitClauseByNumberedHeadings(text: string): ClausePart[] {
 }
 
 export function resolveMasterLibraryPath(): string {
+  const configuredPath = process.env['MASTER_LIBRARY_PATH'];
+  if (configuredPath) {
+    return path.resolve(process.cwd(), configuredPath);
+  }
   return path.resolve(process.cwd(), 'data/templates/dpa_master.json');
 }
 

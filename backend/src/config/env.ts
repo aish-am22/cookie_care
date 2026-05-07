@@ -22,6 +22,7 @@ const envSchema = z.object({
   SMTP_PORT: z.coerce.number().int().positive().optional(),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
+  PUBLIC_BASE_URL: z.string().url().optional(),
   // ---------------------------------------------------------------------------
   // RAG pipeline configuration
   // ---------------------------------------------------------------------------

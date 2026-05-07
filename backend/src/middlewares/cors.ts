@@ -36,7 +36,7 @@ export const corsOptions: CorsOptions = {
       return;
     }
 
-    callback(new Error('CORS origin denied.'));
+    callback(new Error(`CORS origin denied: ${origin}`));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],

@@ -40,6 +40,8 @@ BCRYPT_ROUNDS=12
 # Server
 PORT=3001
 NODE_ENV=development
+PUBLIC_BASE_URL=http://localhost:3001
+MASTER_LIBRARY_PATH=data/templates/dpa_master.json
 
 # CORS (production only)
 ALLOWED_ORIGINS=https://yourapp.com

@@ -43,9 +43,20 @@ export async function getDraftingSessionHandler(req: Request, res: Response, nex
 }
 
 export function getManifestHandler(req: Request, res: Response): void {
+  if (env.NODE_ENV === 'production' && !env.PUBLIC_BASE_URL) {
+    res.status(500).json({
+      error: {
+        code: 'CONFIG_ERROR',
+        message: 'PUBLIC_BASE_URL must be configured in production for manifest generation.',
+      },
+    });
+    return;
+  }
+
   const host = req.get('host');
   const protocol = env.NODE_ENV === 'production' ? 'https' : req.protocol;
-  const apiBaseUrl = host ? `${protocol}://${host}` : 'http://localhost:3001';
+  const fallbackBaseUrl = host ? `${protocol}://${host}` : 'http://localhost:3001';
+  const apiBaseUrl = env.PUBLIC_BASE_URL ?? fallbackBaseUrl;
 
   const xml = buildWordAddInManifest(apiBaseUrl);
   res.type('application/xml').send(xml);

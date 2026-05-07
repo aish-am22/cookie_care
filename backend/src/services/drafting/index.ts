@@ -13,6 +13,11 @@ type ClauseOption = {
   text: string;
 };
 
+function sourceDocumentsFromJson(value: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(value)) return fallback;
+  return value.filter((item): item is string => typeof item === 'string');
+}
+
 function pickRecommendedClause(options: ClauseOption[], preferredClauseId?: string): ClauseOption {
   const preferred = preferredClauseId ? options.find((option) => option.clauseId === preferredClauseId) : undefined;
   if (preferred) return preferred;
@@ -71,11 +76,7 @@ export async function createDraftingSession(userId: string, input: CreateDraftin
       title: clause.title,
       version: stored?.version ?? parseClauseVersion(clause.id),
       status: stored?.status ?? clause.status,
-      sourceDocuments: stored
-        ? Array.isArray(stored.sourceDocuments)
-          ? stored.sourceDocuments.filter((value): value is string => typeof value === 'string')
-          : clause.source_documents
-        : clause.source_documents,
+      sourceDocuments: stored ? sourceDocumentsFromJson(stored.sourceDocuments, clause.source_documents) : clause.source_documents,
       parts,
       text: stored?.text ?? clause.text,
     };
@@ -88,23 +89,25 @@ export async function createDraftingSession(userId: string, input: CreateDraftin
   const skeleton = masterLibrary.master_template.sections.map((section) => {
     const options = optionsBySection.get(section.section_id) ?? [];
     const selected = pickRecommendedClause(options, input.preferredClausesBySection?.[section.section_id]);
+    const fallbackClauseId = section.supported_clauses[0];
 
     return {
       sectionId: section.section_id,
       slotName: section.slot_name,
       supportedClauseIds: section.supported_clauses,
-      selectedClauseId: selected?.clauseId ?? section.supported_clauses[0] ?? 'unavailable',
+      selectedClauseId: selected?.clauseId ?? fallbackClauseId,
     };
   });
 
   const recommendations = masterLibrary.master_template.sections.map((section) => {
     const options = optionsBySection.get(section.section_id) ?? [];
     const selected = pickRecommendedClause(options, input.preferredClausesBySection?.[section.section_id]);
+    const fallbackClauseId = section.supported_clauses[0];
 
     return {
       sectionId: section.section_id,
       slotName: section.slot_name,
-      recommendedClauseId: selected?.clauseId ?? section.supported_clauses[0] ?? 'unavailable',
+      recommendedClauseId: selected?.clauseId ?? fallbackClauseId,
       options,
     };
   });

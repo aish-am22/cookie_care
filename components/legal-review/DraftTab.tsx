@@ -5,19 +5,28 @@ import { AlertTriangleIcon, SparklesIcon, DocumentTextIcon, BookOpenIcon } from 
 import { DocumentViewer } from './DocumentViewer';
 import { parseDocumentSections, stripHtml } from '../../utils/legalReview';
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function buildRenderedHtml(session: DraftingSessionPayload, selectedClauseIds: Record<string, string>): string {
   const sections = session.recommendations
     .map((recommendation, index) => {
       const selectedClauseId = selectedClauseIds[recommendation.sectionId] ?? recommendation.recommendedClauseId;
       const selected = recommendation.options.find((option) => option.clauseId === selectedClauseId) ?? recommendation.options[0];
       if (!selected) {
-        return `<h2>${index + 1}. ${recommendation.slotName}</h2><p>Clause content unavailable.</p>`;
+        return `<h2>${index + 1}. ${escapeHtml(recommendation.slotName)}</h2><p>No clause options available for this section.</p>`;
       }
-      return `<h2>${index + 1}. ${recommendation.slotName}</h2><p>${selected.text}</p>`;
+      return `<h2>${index + 1}. ${escapeHtml(recommendation.slotName)}</h2><p>${escapeHtml(selected.text)}</p>`;
     })
     .join('');
 
-  return `<!DOCTYPE html><html><body><h1>${session.title}</h1>${sections}</body></html>`;
+  return `<!DOCTYPE html><html><body><h1>${escapeHtml(session.title)}</h1>${sections}</body></html>`;
 }
 
 export const DraftTab: React.FC = () => {
