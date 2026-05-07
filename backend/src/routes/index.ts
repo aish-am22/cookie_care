@@ -12,6 +12,7 @@ import { findPii, redactDocument } from '../controllers/redaction.controller.js'
 import authRoutes from "./auth.routes.js";
 import userRouter from './user.routes.js';
 import dashboardRouter from './dashboard.routes.js';
+import draftingRouter from './drafting.routes.js';
 
 const router = Router();
 router.use('/auth', authRoutes);
@@ -59,5 +60,8 @@ router.use('/users', userRouter);
 
 // Dashboard: summary, activity, risk trends, recent scans
 router.use('/dashboard', dashboardRouter);
+
+// Drafting sessions + Office manifest endpoint
+router.use('/drafting', draftingRouter);
 
 export default router;

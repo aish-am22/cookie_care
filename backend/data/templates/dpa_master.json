@@ -1,0 +1,375 @@
+{
+  "master_template": {
+    "document_title": "Master Data Processing Agreement (DPA)",
+    "description": "Unified skeleton covering standard Randstad DPAs, Salesloft DPA, Techademy DPA, and Nondisclosure Agreements.",
+    "sections": [
+      {
+        "section_id": "preamble_00",
+        "slot_name": "Preamble and Applicability",
+        "supported_clauses": ["clause_preamble_v1", "clause_preamble_v2", "clause_preamble_v3"]
+      },
+      {
+        "section_id": "instructions_processing_01",
+        "slot_name": "Instructions and Processing of Personal Data",
+        "supported_clauses": ["clause_instructions_v1", "clause_instructions_v2", "clause_instructions_v3"]
+      },
+      {
+        "section_id": "data_subjects_rights_02",
+        "slot_name": "Data Subjects' Rights",
+        "supported_clauses": ["clause_dsr_v1", "clause_dsr_v2"]
+      },
+      {
+        "section_id": "security_confidentiality_03",
+        "slot_name": "Security and Confidentiality",
+        "supported_clauses": ["clause_security_v1", "clause_security_v2", "clause_security_v3"]
+      },
+      {
+        "section_id": "sub_processors_04",
+        "slot_name": "Sub-Processors",
+        "supported_clauses": ["clause_subprocessors_v1", "clause_subprocessors_v2", "clause_subprocessors_v3"]
+      },
+      {
+        "section_id": "international_transfers_05",
+        "slot_name": "International Transfers",
+        "supported_clauses": ["clause_transfers_v1", "clause_transfers_v2", "clause_transfers_v3"]
+      },
+      {
+        "section_id": "compliance_audit_06",
+        "slot_name": "Compliance Monitoring and Audit",
+        "supported_clauses": ["clause_audit_v1", "clause_audit_v2"]
+      },
+      {
+        "section_id": "breach_management_07",
+        "slot_name": "Breach Management",
+        "supported_clauses": ["clause_breach_v1", "clause_breach_v2"]
+      },
+      {
+        "section_id": "term_termination_08",
+        "slot_name": "Term and Termination",
+        "supported_clauses": ["clause_termination_v1"]
+      },
+      {
+        "section_id": "transferability_09",
+        "slot_name": "Transferability",
+        "supported_clauses": ["clause_transferability_v1"]
+      },
+      {
+        "section_id": "return_destruction_10",
+        "slot_name": "Return and Destruction of Personal Data",
+        "supported_clauses": ["clause_destruction_v1", "clause_destruction_v2"]
+      },
+      {
+        "section_id": "indemnification_liability_11",
+        "slot_name": "Indemnification and Liability",
+        "supported_clauses": ["clause_indemnification_v1", "clause_liability_v2"]
+      },
+      {
+        "section_id": "renegotiations_notices_12",
+        "slot_name": "Renegotiations and Notices",
+        "supported_clauses": ["clause_notices_v1", "clause_notices_v2"]
+      },
+      {
+        "section_id": "applicable_law_dispute_13",
+        "slot_name": "Governing Law and Dispute Settlement",
+        "supported_clauses": ["clause_law_v1", "clause_law_v2"]
+      },
+      {
+        "section_id": "definitions_14",
+        "slot_name": "Definitions and Interpretation",
+        "supported_clauses": ["clause_definitions_v1", "clause_definitions_v2"]
+      },
+      {
+        "section_id": "nda_provisions_15",
+        "slot_name": "NDA Provisions (If Applicable)",
+        "supported_clauses": ["clause_nda_v1"]
+      }
+    ]
+  },
+  "clause_library": [
+    {
+      "id": "clause_preamble_v1",
+      "title": "Preamble",
+      "source_documents": ["Doc 1", "Doc 2", "Doc 3", "Doc 4", "Doc 5"],
+      "text": "This DPA is part of Existing agreement between [Randstad Entity / Controller] and [Supplier Entity / Processor]. Agreement: [Agreement Name] date: [Date]\nI Whereas:\n(A) Under the Agreement, the Supplier will provide Services to Randstad which involves that the Supplier will Process Personal Data for and on behalf of Randstad.\n(B) The Parties are of the opinion that [Randstad OpCo] (Randstad) qualifies as “controller” and Supplier qualifies as a \"Processor\" and agree on the following provisions to govern the processing of Personal Data by Supplier on behalf of Randstad, to the extent necessary for the provision of the Services as described in the Agreement.",
+      "status": "Gold"
+    },
+    {
+      "id": "clause_preamble_v2",
+      "title": "HOW THIS DPA APPLIES",
+      "source_documents": ["Doc 6 (Salesloft)"],
+      "text": "This Data Processing Addendum (“DPA”) forms part of the Master Subscription Agreement (including Order Forms) between Customer and Salesloft or other written or electronic agreement between Salesloft and Customer for the purchase of online services from Salesloft (the “Agreement”) to reflect the parties’ agreement with regard to the Processing of Personal Data, in accordance with the requirements of Data Protection Laws. If the Customer entity signing this DPA is a party to the Agreement, this DPA is an addendum to and forms part of the Agreement.",
+      "status": "Gold"
+    },
+    {
+      "id": "clause_preamble_v3",
+      "title": "Preamble and Whereas",
+      "source_documents": ["Doc 7 (Techademy)"],
+      "text": "A. This Data Protection Annex forms part of the Agreement dated [agreement_date] between [randstad_entity] (\"Randstad Digital\") and [supplier_entity] (“Supplier”). B. Under the Agreement, the Supplier will provide Services to Randstad Digital, its Affiliates or its Clients which involves that the Supplier will process Personal Data for and on behalf of Randstad Digital, its Affiliates or its Clients. C. The Parties are of the opinion that each Randstad Digital Affiliate recipient of the Services qualifies as independent “Controller” and Supplier qualifies as a \"Processor\"...",
+      "status": "Gold"
+    },
+    {
+      "id": "clause_instructions_v1",
+      "title": "1. Instructions",
+      "source_documents": ["Doc 1", "Doc 2", "Doc 3", "Doc 4", "Doc 5"],
+      "text": "1.1. The Processor shall at all times comply with its respective obligations under all applicable Data Protection Law, including without limitation the GDPR. 1.2. The Processor shall only Process Personal Data to the extent it is strictly necessary to provide the Services or perform its other obligations under the Agreement and shall do so exclusively on the instructions of Randstad as set out in this Data Protection Annex and its Appendix 1...",
+      "status": "Gold"
+    },
+    {
+      "id": "clause_instructions_v2",
+      "title": "2. PROCESSING OF PERSONAL DATA",
+      "source_documents": ["Doc 6 (Salesloft)"],
+      "text": "2.1 Roles of the Parties. The parties acknowledge and agree that with regard to the Processing of Personal Data, Customer is the Data Controller, Salesloft is a Data Processor... 2.2 Customer’s Processing of Personal Data. Customer shall, in its use of the Services, Process Personal Data in accordance with the requirements of Data Protection Laws. 2.3 Salesloft’s Processing of Personal Data. Unless required otherwise by law... Salesloft shall only Process Personal Data on behalf of and in accordance with Customer’s documented instructions...",
+      "status": "Gold"
+    },
+    {
+      "id": "clause_instructions_v3",
+      "title": "1. Instructions (Detailed)",
+      "source_documents": ["Doc 7 (Techademy)"],
+      "text": "1.1. The Supplier shall at all times comply with its respective obligations under all applicable Data Protection Law, including without limitation the GDPR. 1.3. The Supplier shall notify Randstad Digital promptly if: 1.3.1. in its opinion, an instruction received by Randstad Digital infringes applicable Data Protection Law; 1.3.2. it cannot for any reason comply with its obligations... 1.3.3. it becomes aware of any circumstance or change in applicable Data Protection Law that is likely to have a substantial adverse effect...",
+      "status": "Gold"
+    },
+    {
+      "id": "clause_security_v1",
+      "title": "3. Security and confidentiality",
+      "source_documents": ["Doc 1", "Doc 2", "Doc 3", "Doc 4", "Doc 5"],
+      "text": "3.1. The Processor shall have in place and shall maintain for the duration of the Processing the security measures set out in the “Vendor Information Security Requirements (VISR)” provided by Randstad to the Processor. 3.2. The Processor will have the security of its Services certified at least annually by a qualified and independent auditor... 3.5. The Processor shall notify Randstad immediately if it detects or reasonably suspects that a Data Security Breach has occurred...",
+      "status": "Gold"
+    },
+    {
+      "id": "clause_security_v2",
+      "title": "6. SECURITY",
+      "source_documents": ["Doc 6 (Salesloft)"],
+      "text": "Salesloft shall maintain administrative, physical, and technical safeguards for protection of the security, confidentiality, and integrity of Personal Data, as set forth in the Security Documentation. Salesloft regularly monitors compliance with these safeguards. Salesloft will not materially decrease the overall security of the Services during a subscription term.",
+      "status": "Gold"
+    },
+    {
+      "id": "clause_security_v3",
+      "title": "3. Security and confidentiality (24hr Notice)",
+      "source_documents": ["Doc 7 (Techademy)"],
+      "text": "3.1. The Supplier shall have in place and shall maintain for the duration of the Processing the security measures set out in the “Vendor Information Security Requirements (VISR)” provided by Randstad Digital... 3.2. Taking into account the state of the art, the costs of implementation and the nature, scope... the Supplier shall implement and maintain appropriate technical and organisational measures to ensure a level of security appropriate to the risk, as referred to in Article 32(1) of the GDPR. 3.6. The Supplier shall notify Randstad Digital within twenty-four (24) hours if it detects or reasonably suspects that a Data Security Breach has occurred...",
+      "status": "Gold"
+    },
+    {
+      "id": "clause_transfers_v1",
+      "title": "5. International Transfers",
+      "source_documents": ["Doc 1", "Doc 2", "Doc 3", "Doc 4", "Doc 5"],
+      "text": "5.1. Transfers from the EEA. This Section applies solely when the Processing of Personal Data by Processor or its Authorized Sub-processors involves a transfer from a Member State of the EEA to Supplier or its Authorized Sub-processors (i) located outside the EEA and (ii) not covered by an Adequacy Decision... b) EU Standard Contractual Clauses (MODULE TWO or THREE depending on scenario).",
+      "status": "Gold"
+    },
+    {
+      "id": "clause_transfers_v2",
+      "title": "9. JURISDICTION SPECIFIC TERMS",
+      "source_documents": ["Doc 6 (Salesloft)"],
+      "text": "9.1. EEA, UK, and Switzerland. To the extent Personal Data is subject to European Data Protection Laws... Salesloft participates in and self-certifies compliance with the Data Privacy Framework (“DPF”). If the DPF is revoked... the EU Standard Contractual Clauses and UK Standard Contractual Clauses shall apply. 9.2 United States. To the extent Personal Data is protected by the CCPA... Salesloft shall not sell Consumer Data.",
+      "status": "Gold"
+    },
+    {
+      "id": "clause_transfers_v3",
+      "title": "5. International Transfers (UK &amp; DPF)",
+      "source_documents": ["Doc 7 (Techademy)"],
+      "text": "5.2.2. EU Model Clauses... 5.2.3. UK Model Clauses. To the extent the transfer concerns personal data from the United Kingdom to any country outside EEA... Parties agree that the UK Model Clauses will apply. 5.2.4. EU-U.S. Data Privacy Framework (DPF), Supplier has been certified under EU-U.S. DPF...",
+      "status": "Gold"
+    },
+    {
+      "id": "clause_nda_v1",
+      "title": "Mutual Nondisclosure Agreement",
+      "source_documents": ["Doc 3 (Bootlabs NDA)"],
+      "text": "Each party hereto and its Affiliates would like to protect the confidentiality of, maintain their respective rights in and prevent the unauthorized use and disclosure of their valuable confidential information... For purpose of this Agreement, with respect to each party hereto, “Affiliate” means any entity that directly or indirectly controls, is controlled by or is under common control with such party...",
+      "status": "Gold"
+    }
+  ],
+  "global_variable_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Global DPA &amp; NDA Variable Schema",
+    "type": "object",
+    "description": "Master schema covering all variables required across Randstad standard, Techademy, Salesloft, and NDA documents.",
+    "properties": {
+      "randstad_entity": {
+        "type": ["string", "array"],
+        "items": { "type": "string" },
+        "description": "Randstad Entity / Controller name(s) (e.g., Randstad Digital, Randstad India Private Limited)"
+      },
+      "supplier_entity": {
+        "type": "string",
+        "description": "Supplier Entity / Processor name"
+      },
+      "agreement_name": {
+        "type": "string",
+        "description": "Name of the existing Master Agreement"
+      },
+      "agreement_date": {
+        "type": "string",
+        "format": "date",
+        "description": "Date of the Master Agreement"
+      },
+      "nature_and_purpose_of_processing": {
+        "type": "string",
+        "description": "Detailed description of the Services and the purpose of processing"
+      },
+      "specification_of_processing_operations": {
+        "type": ["string", "array"],
+        "items": { "type": "string" },
+        "description": "List or description of processing operations to be carried out"
+      },
+      "type_of_personal_data": {
+        "type": ["string", "array"],
+        "items": { "type": "string" },
+        "description": "Specific types of Personal Data Processed"
+      },
+      "special_categories_of_personal_data": {
+        "type": ["string", "array"],
+        "items": {
+          "type": "string",
+          "enum": [
+            "Personal Data revealing racial origin",
+            "Personal Data revealing ethnic origin",
+            "Personal Data revealing political opinions",
+            "Personal Data revealing religious",
+            "Personal Data revealing philosophical beliefs",
+            "Personal Data revealing trade union membership",
+            "genetic data or biometric data",
+            "data concerning health",
+            "data concerning a natural person's sex life",
+            "Data concerning a natural person's sexual orientation",
+            "Personal data relating to criminal convictions",
+            "None",
+            "No Special Categories of Personal Data will be Processed"
+          ]
+        },
+        "description": "Select special categories of data, or select 'None' if Option 2 applies."
+      },
+      "categories_of_data_subjects": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "(Prospective) candidates",
+            "Corporate employees of Randstad / Randstad Digital",
+            "Temporary workers of Randstad",
+            "Freelance contractors",
+            "Clients' representatives",
+            "Suppliers' representatives",
+            "Prospects, customers, business partners, and vendors of Customer (who are natural persons)",
+            "Employees or contact persons of Customer’s prospects, customers, business partners, and vendors",
+            "Employees, agents, advisors, freelancers of Customer (who are natural persons)",
+            "Customer’s Users authorized by Customer to use the Services"
+          ]
+        },
+        "description": "Categories of individuals whose data is processed."
+      },
+      "retention_period": {
+        "type": "string",
+        "description": "The period for which the personal data will be retained, or criteria used to determine that period."
+      },
+      "processing_locations": {
+        "type": "string",
+        "description": "Indicate Processing locations (e.g., India / outside India / EEA / US)"
+      },
+      "authorized_sub_processors": {
+        "type": ["array", "string"],
+        "items": {
+          "type": "object",
+          "properties": {
+            "company_name": { "type": "string" },
+            "address": { "type": "string" },
+            "contact_person_details": { "type": "string" },
+            "processing_activities_description": { "type": "string" },
+            "transfer_countries_and_mechanism": { "type": "string" }
+          }
+        },
+        "description": "List of authorized Sub-processors. Can be 'None' or 'No subprocessors'."
+      },
+      "governing_law_jurisdiction": {
+        "type": "string",
+        "description": "The specific governing law (e.g., Law of India, laws of the Netherlands, laws of Ireland)"
+      },
+      "competent_court_location": {
+        "type": "string",
+        "description": "Location of the Court chosen (e.g., Amsterdam, Ireland, chosen by Randstad Entity)"
+      },
+      "randstad_notice_email": {
+        "type": "string",
+        "format": "email",
+        "description": "Email address for Randstad Digital notices (Techademy variation)"
+      },
+      "supplier_notice_email": {
+        "type": "string",
+        "format": "email",
+        "description": "Email address for Supplier / Processor notices (Techademy variation)"
+      },
+      "nda_date": {
+        "type": "string",
+        "format": "date",
+        "description": "Date of the Mutual Nondisclosure Agreement (NDA variation)"
+      },
+      "nda_randstad_address": {
+        "type": "string",
+        "description": "Registered office of Randstad Entity (NDA variation)"
+      },
+      "nda_supplier_address": {
+        "type": "string",
+        "description": "Registered office of Supplier Entity (NDA variation)"
+      },
+      "nda_purpose": {
+        "type": "string",
+        "description": "Purpose of the NDA (NDA variation)"
+      },
+      "customer_entity_name": {
+        "type": "string",
+        "description": "Full legal name of the Customer / Data Exporter (Salesloft variation)"
+      },
+      "customer_address": {
+        "type": "string",
+        "description": "Main registered address of the Customer (Salesloft variation)"
+      },
+      "customer_registration_number": {
+        "type": "string",
+        "description": "Official registration number of the Customer (Salesloft variation)"
+      },
+      "customer_contact_details": {
+        "type": "string",
+        "description": "Contact person's name, position, and email for the Customer (Salesloft variation)"
+      },
+      "customer_signer_name": {
+        "type": "string",
+        "description": "Print Name of the Customer's authorized signatory (Salesloft variation)"
+      },
+      "customer_signer_title": {
+        "type": "string",
+        "description": "Title of the Customer's authorized signatory (Salesloft variation)"
+      },
+      "customer_signer_date": {
+        "type": "string",
+        "format": "date",
+        "description": "Date signed by Customer (Salesloft variation)"
+      },
+      "salesloft_signer_name": {
+        "type": "string",
+        "description": "Print Name of Salesloft's authorized signatory (Salesloft variation)"
+      },
+      "salesloft_signer_title": {
+        "type": "string",
+        "description": "Title of Salesloft's authorized signatory (Salesloft variation)"
+      },
+      "salesloft_signer_date": {
+        "type": "string",
+        "format": "date",
+        "description": "Date signed by Salesloft (Salesloft variation)"
+      },
+      "dpa_effective_date": {
+        "type": "string",
+        "format": "date",
+        "description": "The effective date of the DPA (Start date in Table 1) (Salesloft variation)"
+      }
+    },
+    "required": [
+      "randstad_entity",
+      "supplier_entity",
+      "nature_and_purpose_of_processing",
+      "specification_of_processing_operations",
+      "type_of_personal_data",
+      "retention_period",
+      "processing_locations"
+    ]
+  }
+}
