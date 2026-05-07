@@ -85,3 +85,45 @@ export interface AskResponse {
   needsHumanReview?: boolean;
   traceId?: string;
 }
+
+export interface DraftingClausePart {
+  order: number;
+  heading: string | null;
+  text: string;
+}
+
+export interface DraftingClauseOption {
+  clauseId: string;
+  title: string;
+  version: string;
+  status: string;
+  sourceDocuments: string[];
+  parts: DraftingClausePart[];
+  text: string;
+}
+
+export interface DraftingSkeletonSection {
+  sectionId: string;
+  slotName: string;
+  supportedClauseIds: string[];
+  selectedClauseId: string;
+}
+
+export interface DraftingRecommendation {
+  sectionId: string;
+  slotName: string;
+  recommendedClauseId: string;
+  options: DraftingClauseOption[];
+}
+
+export interface DraftingSessionPayload {
+  sessionId: string;
+  title: string;
+  skeleton: DraftingSkeletonSection[];
+  recommendations: DraftingRecommendation[];
+  render: {
+    format: 'html' | 'openxml';
+    content: string;
+  };
+  createdAt: string;
+}

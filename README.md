@@ -40,6 +40,8 @@ BCRYPT_ROUNDS=12
 # Server
 PORT=3001
 NODE_ENV=development
+PUBLIC_BASE_URL=http://localhost:3001
+MASTER_LIBRARY_PATH=data/templates/dpa_master.json
 
 # CORS (production only)
 ALLOWED_ORIGINS=https://yourapp.com
@@ -100,6 +102,23 @@ UPLOADED → INGESTING → READY
 ### Smoke Tests
 
 See [`backend/test-contracts.http`](backend/test-contracts.http) for ready-to-run HTTP examples for all four core endpoints.
+
+### Drafting Session + Word Add-in Foundation
+
+New backend endpoints for the DPA/NDA drafting workflow:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/drafting/sessions` | Creates a Drafting Session from `backend/data/templates/dpa_master.json` with skeleton + AI clause options + Word-renderable HTML |
+| `GET`  | `/api/drafting/sessions/:id` | Retrieves a previously created Drafting Session payload |
+| `GET`  | `/api/drafting/manifest.xml` | Returns Microsoft Word Add-in manifest XML |
+
+Proposed Office Add-in (Office JS) architecture:
+- **Task pane app** loads the same frontend and calls Drafting Session endpoints.
+- **Clause Library in Word**: task pane fetches Drafting Session recommendations and lists clause options inline for insertion.
+- **Analyze / Replace with Gold**: add-in reads the selected Word range, calls backend analysis endpoint (future extension), then replaces range text using recommended `Gold` clause from Drafting Session options.
+- **Draft Appendix 1 variables**: add-in collects variable values, calls `POST /api/drafting/sessions` with variables payload, inserts rendered HTML/OpenXML into the Word document body.
+- **Manifest delivery**: Word clients can load `/api/drafting/manifest.xml` directly from backend.
 
 
 ---

@@ -37,6 +37,7 @@ model User {
   scanRecords             ScanRecord[]
   contractDocuments       ContractDocument[]
   ragDocuments            RagDocument[]
+  draftingSessions        DraftingSession[]
 
   @@index([role])
   @@index([createdAt])
@@ -272,6 +273,54 @@ model AiQueryLog {
   createdAt DateTime @default(now())
 
   @@index([orgId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model MasterClause {
+  id              String   @id
+  title           String
+  sectionId       String?
+  slotName        String?
+  version         String
+  text            String   @db.Text
+  status          String
+  sourceDocuments Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  parts MasterClausePart[]
+
+  @@index([sectionId])
+  @@index([version])
+  @@index([status])
+}
+
+model MasterClausePart {
+  id        String   @id
+  clauseId  String
+  clause    MasterClause @relation(fields: [clauseId], references: [id], onDelete: Cascade)
+  partOrder Int
+  heading   String?
+  text      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([clauseId, partOrder])
+  @@index([clauseId])
+}
+
+model DraftingSession {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  payload       Json
+  renderFormat  String   @default("html")
+  renderContent String   @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
   @@index([userId])
   @@index([createdAt])
 }
